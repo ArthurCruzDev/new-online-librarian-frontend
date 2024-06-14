@@ -1,4 +1,5 @@
 import axios from "axios";
+const TOKEN_NAME = "nol_token";
 
 const ApiClient = axios.create({
   baseURL: process.env.NEXT_PUBLIC_API_HOST,
@@ -11,7 +12,7 @@ ApiClient.interceptors.response.use(
   },
   (error) => {
     const status = error.response?.status || 500;
-    if (status === 401) {
+    if (status === 401 && window.location.pathname != "/login") {
       window.location.href =
         window.location.protocol + "//" + window.location.host + "/login";
     } else {
@@ -23,3 +24,11 @@ ApiClient.interceptors.response.use(
 ApiClient.defaults.headers.common["Content-Type"] =
   "application/json;charset=utf-8";
 export default ApiClient;
+
+export function setToken(token: string) {
+  localStorage.setItem(TOKEN_NAME, token);
+}
+
+export function getToken(): string {
+  return localStorage.getItem(TOKEN_NAME) ?? "";
+}

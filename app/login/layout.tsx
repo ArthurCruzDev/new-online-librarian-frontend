@@ -16,7 +16,11 @@ export default function LoginLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <div className={inter.className + " bg-background text-foreground"}>
+    <div
+      className={
+        inter.className + " bg-background text-foreground min-h-screen h-full"
+      }
+    >
       <StoreProvider>{children}</StoreProvider>
     </div>
   );

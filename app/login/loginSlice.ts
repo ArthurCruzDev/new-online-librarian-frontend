@@ -1,7 +1,7 @@
 import { createAsyncThunk, createSlice, PayloadAction } from "@reduxjs/toolkit";
 import type { RootState } from "../../lib/store";
 import { stat } from "fs";
-import ApiClient from "@/lib/api_client";
+import ApiClient, { setToken } from "@/lib/api_client";
 
 // Define a type for the slice state
 export interface LoginState {
@@ -25,10 +25,11 @@ interface doLoginPayload {
 export const doLogin = createAsyncThunk(
   "login/doLogin",
   async (payload: doLoginPayload) => {
-    console.log(process.env.NEXT_PUBLIC_API_HOST);
     const response = await ApiClient.post("/v1/auth/login", {
       email: payload.email,
       password: payload.password,
+    }).catch(function (error) {
+      throw new Error(error.response.data.msg);
     });
     return response.data;
   }
@@ -50,7 +51,7 @@ export const loginSlice = createSlice({
         state.status = "success";
         state.error = false;
         state.errorMsg = "";
-        localStorage.setItem("noltoken", action.payload.access_token);
+        setToken(action.payload.access_token);
       })
       .addCase(doLogin.rejected, (state, action) => {
         state.status = "failure";
