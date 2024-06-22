@@ -32,3 +32,7 @@ export function setToken(token: string) {
 export function getToken(): string {
   return localStorage.getItem(TOKEN_NAME) ?? "";
 }
+
+export function isUserLoggedIn(): boolean {
+  return getToken() != "";
+}

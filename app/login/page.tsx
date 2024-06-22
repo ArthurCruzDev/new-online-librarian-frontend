@@ -9,10 +9,12 @@ import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
 import { Loader2 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { redirect } from "next/navigation";
+import { useRouter } from "next/navigation";
+import { isUserLoggedIn } from "@/lib/api_client";
 
 export default function Login() {
   const dispatch = useAppDispatch();
+  const router = useRouter();
   const loginStatus = useAppSelector((state) => state.login.status);
   const loginError = useAppSelector((state) => state.login.error);
   const loginErrorMsg = useAppSelector((state) => state.login.errorMsg);
@@ -34,8 +36,14 @@ export default function Login() {
   };
 
   useEffect(() => {
+    if (isUserLoggedIn()) {
+      router.push("/home");
+    }
+  }, []);
+
+  useEffect(() => {
     if (loginStatus === "success") {
-      redirect("/home");
+      router.push("/home");
     }
   }, [loginStatus]);
 
@@ -90,6 +98,16 @@ export default function Login() {
               <Loader2 className="mr-2 h-4 w-4 animate-spin" />
             )}
             ENTRAR
+          </Button>
+          <Button
+            variant="link"
+            type="button"
+            className="w-96 text-base font-medium mt-4"
+            onClick={(_) => {
+              router.push("/forgot-password");
+            }}
+          >
+            Esqueci minha senha
           </Button>
           <Separator className="my-8 w-80" />
           {loginError && loginErrorMsg && (
