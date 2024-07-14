@@ -37,7 +37,7 @@ export default function Login() {
 
   useEffect(() => {
     if (isUserLoggedIn()) {
-      router.push("/home");
+      router.push("/dashboard/home");
     }
   }, []);
 
