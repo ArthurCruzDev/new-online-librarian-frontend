@@ -43,7 +43,7 @@ export default function Login() {
 
   useEffect(() => {
     if (loginStatus === "success") {
-      router.push("/home");
+      router.push("/dashboard/home");
     }
   }, [loginStatus]);
 
