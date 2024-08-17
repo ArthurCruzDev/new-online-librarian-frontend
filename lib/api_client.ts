@@ -13,6 +13,7 @@ ApiClient.interceptors.response.use(
   (error) => {
     const status = error.response?.status || 500;
     if (status === 401 && window.location.pathname != "/login") {
+      deleteToken();
       window.location.href =
         window.location.protocol + "//" + window.location.host + "/login";
     } else {
@@ -21,9 +22,18 @@ ApiClient.interceptors.response.use(
   }
 );
 
+ApiClient.interceptors.request.use((request) => {
+  request.headers.Authorization = `Bearer ${getToken()}`;
+  return request;
+});
+
 ApiClient.defaults.headers.common["Content-Type"] =
   "application/json;charset=utf-8";
 export default ApiClient;
+
+function deleteToken() {
+  localStorage.removeItem(TOKEN_NAME);
+}
 
 export function setToken(token: string) {
   localStorage.setItem(TOKEN_NAME, token);
