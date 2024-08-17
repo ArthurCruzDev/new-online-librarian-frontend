@@ -2,15 +2,29 @@
 
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
-import { Book, Library, Map, MapPin, Menu, User } from "lucide-react";
+import { Book, Home, Library, Map, MapPin, Menu, User } from "lucide-react";
 import { ModeToggle } from "@/components/mode-toggler";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Label } from "@/components/ui/label";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import "../app/globals.css";
+import { useCallback, useState } from "react";
 
-export function Navigation() {
+type NavigationProps = {
+  open: boolean;
+  setOpen: Function;
+};
+
+export function Navigation({ open, setOpen }: NavigationProps) {
   const router = useRouter();
+  const changePage = useCallback(
+    (path: string) => {
+      router.push(path);
+      setOpen(!open);
+    },
+    [open, router, setOpen]
+  );
+
   return (
     <nav className="relative flex w-full h-16 p-2 bg-background shadow-sm justify-center items-center">
       <div>
@@ -33,11 +47,22 @@ export function Navigation() {
         </Label>
       </div>
       <SheetContent side={"left"} className="pl-0 pr-0 w-72">
-        <div className="flex flex-col justify-center align-top p-1 mt-2">
+        <div className="flex flex-col justify-center align-top p-1 mt-8">
           <div className="w-full">
             <Button
               variant={"ghost"}
               className="w-full flex flex-row justify-start text-base"
+              onClick={() => changePage("/dashboard/home")}
+            >
+              <Home className="mr-3 text-primary" />
+              Início
+            </Button>
+          </div>
+          <div className="w-full">
+            <Button
+              variant={"ghost"}
+              className="w-full flex flex-row justify-start text-base"
+              onClick={() => changePage("/dashboard/books")}
             >
               <Book className="mr-3 text-primary" />
               Livros
@@ -47,6 +72,7 @@ export function Navigation() {
             <Button
               variant={"ghost"}
               className="w-full flex flex-row justify-start text-base"
+              onClick={() => changePage("/dashboard/locations")}
             >
               <MapPin className="mr-3 text-primary" />
               Localizações
@@ -56,7 +82,7 @@ export function Navigation() {
             <Button
               variant={"ghost"}
               className="w-full flex flex-row justify-start text-base"
-              onClick={() => router.push("/dashboard/home")}
+              onClick={() => changePage("/dashboard/collections")}
             >
               <Library className="mr-3 text-primary" />
               Coleções

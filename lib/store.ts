@@ -1,9 +1,11 @@
 import { configureStore } from "@reduxjs/toolkit";
 import loginReducer from "@/app/login/loginSlice";
+import locationsReducer from "@/app/dashboard/locations/locationSlice";
 export const makeStore = () => {
   return configureStore({
     reducer: {
       login: loginReducer,
+      locations: locationsReducer,
     },
   });
 };
