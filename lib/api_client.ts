@@ -1,5 +1,6 @@
 import axios from "axios";
 const TOKEN_NAME = "nol_token";
+import { jwtDecode } from "jwt-decode";
 
 const ApiClient = axios.create({
   baseURL: process.env.NEXT_PUBLIC_API_HOST,
@@ -31,7 +32,7 @@ ApiClient.defaults.headers.common["Content-Type"] =
   "application/json;charset=utf-8";
 export default ApiClient;
 
-function deleteToken() {
+export function deleteToken() {
   localStorage.removeItem(TOKEN_NAME);
 }
 
@@ -45,4 +46,19 @@ export function getToken(): string {
 
 export function isUserLoggedIn(): boolean {
   return getToken() != "";
+}
+
+export type TokenData = {
+  id: number;
+  exp: number;
+  user_name: string;
+};
+
+export function getTokenData(): TokenData | null {
+  const token = getToken();
+  if (token === "") {
+    return null;
+  } else {
+    return jwtDecode<TokenData>(token);
+  }
 }

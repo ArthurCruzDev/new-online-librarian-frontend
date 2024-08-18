@@ -2,13 +2,24 @@
 
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
-import { Book, Home, Library, Map, MapPin, Menu, User } from "lucide-react";
+import {
+  Book,
+  Home,
+  Library,
+  Map,
+  MapPin,
+  Menu,
+  Power,
+  User,
+} from "lucide-react";
 import { ModeToggle } from "@/components/mode-toggler";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Label } from "@/components/ui/label";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import "../app/globals.css";
 import { useCallback, useState } from "react";
+import { deleteToken } from "@/lib/api_client";
+import { Separator } from "./ui/separator";
 
 type NavigationProps = {
   open: boolean;
@@ -26,7 +37,7 @@ export function Navigation({ open, setOpen }: NavigationProps) {
   );
 
   return (
-    <nav className="relative flex w-full h-16 p-2 bg-background shadow-sm justify-center items-center">
+    <nav className="relative z-50 flex w-full h-16 p-2 bg-background shadow-sm justify-center items-center">
       <div>
         <SheetTrigger asChild>
           <Button variant="outline" size="icon">
@@ -47,7 +58,8 @@ export function Navigation({ open, setOpen }: NavigationProps) {
         </Label>
       </div>
       <SheetContent side={"left"} className="pl-0 pr-0 w-72">
-        <div className="flex flex-col justify-center align-top p-1 mt-8">
+        <div className="flex flex-col justify-start align-top p-1 mt-8 h-full">
+          <Separator orientation="horizontal" className="mb-4" />
           <div className="w-full">
             <Button
               variant={"ghost"}
@@ -88,6 +100,21 @@ export function Navigation({ open, setOpen }: NavigationProps) {
               Coleções
             </Button>
           </div>
+          <div className="w-full">
+            <Button
+              variant={"ghost"}
+              className="w-full flex flex-row justify-start text-base"
+              onClick={() => {
+                deleteToken();
+                changePage("/");
+              }}
+            >
+              <Power className="mr-3 text-primary" />
+              Sair
+            </Button>
+          </div>
+          <div className="flex-1"></div>
+          <Separator orientation="horizontal" className="my-14" />
         </div>
       </SheetContent>
     </nav>
