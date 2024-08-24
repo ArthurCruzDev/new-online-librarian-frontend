@@ -17,7 +17,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Label } from "@/components/ui/label";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import "../app/globals.css";
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { deleteToken, getTokenData } from "@/lib/api_client";
 import { Separator } from "./ui/separator";
 
@@ -28,6 +28,8 @@ type NavigationProps = {
 
 export function Navigation({ open, setOpen }: NavigationProps) {
   const router = useRouter();
+  const [userName, setUserName] = useState("");
+
   const changePage = useCallback(
     (path: string) => {
       router.push(path);
@@ -35,6 +37,13 @@ export function Navigation({ open, setOpen }: NavigationProps) {
     },
     [open, router, setOpen]
   );
+
+  useEffect(() => {
+    let tokenData = getTokenData();
+    if (tokenData != null) {
+      setUserName(tokenData.user_name);
+    }
+  }, []);
 
   return (
     <nav className="relative z-50 flex w-full h-16 p-2 bg-background shadow-sm justify-center items-center">
@@ -51,10 +60,15 @@ export function Navigation({ open, setOpen }: NavigationProps) {
       </div>
       <div className="flex flex-row justify-start items-center ml-2 min-w-36">
         <Avatar id="avatar">
-          <AvatarFallback className="bg-primary-foreground">AC</AvatarFallback>
+          <AvatarFallback className="bg-primary-foreground">
+            {userName
+              .split(" ")
+              .map((name) => name.charAt(0).toUpperCase())
+              .reduce((a, b) => a + b, "")}
+          </AvatarFallback>
         </Avatar>
         <Label className="ml-2 text-base font-sans font-light" htmlFor="avatar">
-          {getTokenData() != null && <>{getTokenData()?.user_name}</>}
+          {userName}
         </Label>
       </div>
       <SheetContent side={"left"} className="pl-0 pr-0 w-72">

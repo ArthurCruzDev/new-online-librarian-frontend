@@ -96,10 +96,10 @@ function LocationComponent({
   location,
 }: LocationComponentProps): React.ReactElement {
   return (
-    <Card className="w-[380px] my-0 mx-auto">
+    <Card className="w-[280px] my-0 mx-auto shadow-md">
       <CardHeader>{location.name}</CardHeader>
       <CardContent>
-        <div className="w-full h-[200px] relative">
+        <div className="w-full h-[138px] relative">
           <Image
             src={
               "https://images.pexels.com/photos/1370295/pexels-photo-1370295.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=1"
