@@ -18,7 +18,7 @@ import { Label } from "@/components/ui/label";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import "../app/globals.css";
 import { useCallback, useState } from "react";
-import { deleteToken } from "@/lib/api_client";
+import { deleteToken, getTokenData } from "@/lib/api_client";
 import { Separator } from "./ui/separator";
 
 type NavigationProps = {
@@ -54,7 +54,7 @@ export function Navigation({ open, setOpen }: NavigationProps) {
           <AvatarFallback className="bg-primary-foreground">AC</AvatarFallback>
         </Avatar>
         <Label className="ml-2 text-base font-sans font-light" htmlFor="avatar">
-          Arthur Cruz
+          {getTokenData() != null && <>{getTokenData()?.user_name}</>}
         </Label>
       </div>
       <SheetContent side={"left"} className="pl-0 pr-0 w-72">
