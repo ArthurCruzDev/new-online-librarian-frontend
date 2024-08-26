@@ -1,9 +1,13 @@
 import ApiClient from "@/lib/api_client";
-import { createAsyncThunk, createSlice } from "@reduxjs/toolkit";
+import {
+  combineReducers,
+  createAsyncThunk,
+  createSlice,
+} from "@reduxjs/toolkit";
 import { access, stat } from "fs";
 
 export interface Location {
-  id: number;
+  id?: number;
   name: string;
   user_id: number;
 }
@@ -33,9 +37,9 @@ export const doGetAllLocations = createAsyncThunk(
     return response.data;
   }
 );
-//https://stackoverflow.com/questions/76987888/how-can-i-group-redux-store-slices-under-the-same-property
-export const locationsSlice = createSlice({
-  name: "locations",
+
+export const getAllLocationsSlice = createSlice({
+  name: "getAllLocations",
   initialState: initialGetAllLocationsState,
   reducers: {},
   extraReducers(builder) {
@@ -60,4 +64,59 @@ export const locationsSlice = createSlice({
   },
 });
 
-export default locationsSlice.reducer;
+export interface CreateLocationState {
+  status: "idle" | "loading" | "success" | "failure";
+  error: boolean;
+  errorMsg: string | undefined;
+  location?: Location;
+}
+
+const initialCreateLocationState: CreateLocationState = {
+  status: "idle",
+  error: false,
+  errorMsg: undefined,
+  location: undefined,
+};
+
+export const doCreateLocation = createAsyncThunk(
+  "locations/",
+  async (location: Location) => {
+    const response = await ApiClient.post("/v1/locations", location).catch(
+      function (error) {
+        throw new Error(error.response.data.msg);
+      }
+    );
+    return response.data;
+  }
+);
+
+export const createLocationsSlice = createSlice({
+  name: "createLocations",
+  initialState: initialCreateLocationState,
+  reducers: {},
+  extraReducers(builder) {
+    builder
+      .addCase(doCreateLocation.pending, (state, _) => {
+        state.status = "loading";
+        state.error = false;
+        state.errorMsg = undefined;
+      })
+      .addCase(doCreateLocation.fulfilled, (state, action) => {
+        state.status = "success";
+        state.error = false;
+        state.errorMsg = undefined;
+        state.location = action.payload.location as Location;
+      })
+      .addCase(doCreateLocation.rejected, (state, action) => {
+        state.status = "failure";
+        state.error = true;
+        state.errorMsg = action.error.message;
+        state.location = undefined;
+      });
+  },
+});
+
+export default combineReducers({
+  getAllLocationsSlice: getAllLocationsSlice.reducer,
+  createLocationsSlice: createLocationsSlice.reducer,
+});
