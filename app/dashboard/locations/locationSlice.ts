@@ -27,7 +27,7 @@ const initialGetAllLocationsState: GetAllLocationsState = {
 };
 
 export const doGetAllLocations = createAsyncThunk(
-  "locations/getAll",
+  "locations/getAllLocations",
   async () => {
     const response = await ApiClient.get("/v1/locations").catch(function (
       error
@@ -79,7 +79,7 @@ const initialCreateLocationState: CreateLocationState = {
 };
 
 export const doCreateLocation = createAsyncThunk(
-  "locations/",
+  "locations/doCreateLocation",
   async (location: Location) => {
     const response = await ApiClient.post("/v1/locations", location).catch(
       function (error) {
@@ -93,7 +93,11 @@ export const doCreateLocation = createAsyncThunk(
 export const createLocationsSlice = createSlice({
   name: "createLocations",
   initialState: initialCreateLocationState,
-  reducers: {},
+  reducers: {
+    resetCreateLocationState: (state, action) => {
+      return initialCreateLocationState;
+    },
+  },
   extraReducers(builder) {
     builder
       .addCase(doCreateLocation.pending, (state, _) => {
@@ -115,6 +119,8 @@ export const createLocationsSlice = createSlice({
       });
   },
 });
+
+export const { resetCreateLocationState } = createLocationsSlice.actions;
 
 export default combineReducers({
   getAllLocationsSlice: getAllLocationsSlice.reducer,

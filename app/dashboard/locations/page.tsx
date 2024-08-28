@@ -1,9 +1,21 @@
 "use client";
 import { useAppDispatch, useAppSelector } from "@/lib/hooks";
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { doCreateLocation, doGetAllLocations, Location } from "./locationSlice";
+import {
+  doCreateLocation,
+  doGetAllLocations,
+  Location,
+  resetCreateLocationState,
+} from "./locationSlice";
 import { Button } from "@/components/ui/button";
-import { Edit2, Loader2, Plus, Search, Trash2 } from "lucide-react";
+import {
+  CheckCircle2,
+  Edit2,
+  Loader2,
+  Plus,
+  Search,
+  Trash2,
+} from "lucide-react";
 import {
   Card,
   CardContent,
@@ -31,6 +43,7 @@ import { getTokenData } from "@/lib/api_client";
 import {
   Form,
   FormControl,
+  FormDescription,
   FormField,
   FormItem,
   FormLabel,
@@ -84,8 +97,8 @@ export default function LocationsPage() {
       <div className="w-full flex justify-start items-center mb-7">
         <h1 className="font-serif font-semibold text-3xl">Localizações</h1>
 
-        <Dialog open={dialogOpen}>
-          <DialogTrigger>
+        <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+          <DialogTrigger asChild>
             <Button
               variant="default"
               size={"sm"}
@@ -182,7 +195,6 @@ export function AddEditLocation({
   location,
   closeCallback,
 }: AddEditLocationProps): React.ReactElement {
-  const [locationName, setLocationName] = useState("");
   const [userId, setUserId] = useState(0);
 
   const dispatch = useAppDispatch();
@@ -193,10 +205,6 @@ export function AddEditLocation({
   useEffect(() => {
     setUserId(getTokenData()?.id ?? 0);
   }, []);
-
-  const handleSubmitLocation = (e: React.MouseEvent<HTMLButtonElement>) => {
-    e.preventDefault();
-  };
 
   const formSchema = z.object({
     name: z.string().min(1).max(255),
@@ -218,15 +226,14 @@ export function AddEditLocation({
       //TODO
     } else {
       dispatch(doCreateLocation(newLocation));
-      closeCallback(true);
     }
   }
 
-  useEffect(() => {
-    if (createLocationState.status === "success") {
-      dispatch(doGetAllLocations());
-    }
-  }, [dispatch, createLocationState.status]);
+  function closeAfterSuccess() {
+    dispatch(doGetAllLocations());
+    dispatch(resetCreateLocationState({}));
+    closeCallback(true);
+  }
 
   return (
     <DialogContent className="sm:max-w-[425px]">
@@ -235,8 +242,7 @@ export function AddEditLocation({
           {location?.id == null ? "Criar" : "Editar"} Localização
         </DialogTitle>
       </DialogHeader>
-      {(createLocationState?.status == "idle" ||
-        createLocationState.status == "success") && (
+      {createLocationState?.status == "idle" && (
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
             <FormField
@@ -248,8 +254,6 @@ export function AddEditLocation({
                   <FormControl>
                     <Input
                       id="locationName"
-                      value={locationName}
-                      onChange={(e) => setLocationName(e.target.value)}
                       className="col-span-3"
                       {...field}
                     />
@@ -263,6 +267,55 @@ export function AddEditLocation({
             </Button>
           </form>
         </Form>
+      )}
+      {createLocationState?.status == "failure" && (
+        <Form {...form}>
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
+            <FormField
+              control={form.control}
+              name="name"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Nome</FormLabel>
+                  <FormControl>
+                    <Input
+                      id="locationName"
+                      className="col-span-3"
+                      {...field}
+                    />
+                  </FormControl>
+                  {createLocationState?.error && (
+                    <FormDescription className="text-red-700 font-semibold">
+                      {createLocationState?.errorMsg}
+                    </FormDescription>
+                  )}
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <Button type="submit">
+              {location?.id == null ? "Criar" : "Editar"}
+            </Button>
+          </form>
+        </Form>
+      )}
+      {createLocationState?.status == "loading" && (
+        <div className="flex w-full h-full justify-center items-center">
+          <Loader2 className="my-8 h-20 w-20 animate-spin" />
+        </div>
+      )}
+      {createLocationState?.status == "success" && (
+        <div className="flex flex-col w-full h-full justify-center items-center gap-6 mt-4">
+          <p className="font-medium text-lg">Localização criada com sucesso</p>
+          <CheckCircle2 size={48} className="text-green-500" />
+          <Button
+            variant={"default"}
+            onClick={closeAfterSuccess}
+            className="mt-4"
+          >
+            Fechar
+          </Button>
+        </div>
       )}
       <DialogFooter></DialogFooter>
     </DialogContent>
