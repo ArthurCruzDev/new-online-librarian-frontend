@@ -3,9 +3,12 @@ import { useAppDispatch, useAppSelector } from "@/lib/hooks";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   doCreateLocation,
+  doDeleteLocation,
   doGetAllLocations,
+  doUpdateLocation,
   Location,
   resetCreateLocationState,
+  resetDeleteLocationState,
 } from "./locationSlice";
 import { Button } from "@/components/ui/button";
 import {
@@ -157,6 +160,8 @@ type LocationComponentProps = {
 function LocationComponent({
   location,
 }: LocationComponentProps): React.ReactElement {
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   return (
     <Card className="w-[280px] my-0 mx-auto shadow-md">
       <CardHeader>{location.name}</CardHeader>
@@ -175,13 +180,31 @@ function LocationComponent({
         </div>
       </CardContent>
       <CardFooter className="w-full flex flex-row justify-start align-middle gap-4">
-        <Button variant={"default"}>
-          <Edit2 />
-        </Button>
-        <Button variant={"destructive"}>
+        {/* <Button variant={"default"}>
+          <Edit2 onClick={() => setEditDialogOpen(true)} />
+        </Button> */}
+        <Button
+          variant={"destructive"}
+          size={"icon"}
+          onClick={() => {
+            setDeleteDialogOpen(true);
+          }}
+        >
           <Trash2 />
         </Button>
       </CardFooter>
+      <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
+        <AddEditLocation
+          location={location}
+          closeCallback={() => setEditDialogOpen(false)}
+        />
+      </Dialog>
+      <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <DeleteLocation
+          location={location}
+          closeCallback={() => setDeleteDialogOpen(false)}
+        />
+      </Dialog>
     </Card>
   );
 }
@@ -199,12 +222,8 @@ export function AddEditLocation({
 
   const dispatch = useAppDispatch();
   const createLocationState = useAppSelector(
-    (state) => state.locations.createLocationsSlice
+    (state) => state.locations.createLocationSlice
   );
-
-  useEffect(() => {
-    setUserId(getTokenData()?.id ?? 0);
-  }, []);
 
   const formSchema = z.object({
     name: z.string().min(1).max(255),
@@ -216,6 +235,14 @@ export function AddEditLocation({
       name: "",
     },
   });
+
+  useEffect(() => {
+    setUserId(getTokenData()?.id ?? 0);
+    if (location != null && location != undefined) {
+      form.setValue("name", location.name);
+    }
+  }, []);
+
   function onSubmit(values: z.infer<typeof formSchema>) {
     let newLocation: Location = {
       id: location?.id,
@@ -223,7 +250,7 @@ export function AddEditLocation({
       user_id: location?.user_id ?? userId,
     };
     if (location?.id != undefined) {
-      //TODO
+      dispatch(doUpdateLocation(newLocation));
     } else {
       dispatch(doCreateLocation(newLocation));
     }
@@ -307,6 +334,93 @@ export function AddEditLocation({
       {createLocationState?.status == "success" && (
         <div className="flex flex-col w-full h-full justify-center items-center gap-6 mt-4">
           <p className="font-medium text-lg">Localização criada com sucesso</p>
+          <CheckCircle2 size={48} className="text-green-500" />
+          <Button
+            variant={"default"}
+            onClick={closeAfterSuccess}
+            className="mt-4"
+          >
+            Fechar
+          </Button>
+        </div>
+      )}
+      <DialogFooter></DialogFooter>
+    </DialogContent>
+  );
+}
+
+type DeleteLocationProps = {
+  location: Location;
+  closeCallback: Function;
+};
+
+export function DeleteLocation({
+  location,
+  closeCallback,
+}: DeleteLocationProps): React.ReactElement {
+  const [userId, setUserId] = useState(0);
+
+  const dispatch = useAppDispatch();
+  const deleteLocationState = useAppSelector(
+    (state) => state.locations.deleteLocationSlice
+  );
+
+  useEffect(() => {
+    setUserId(getTokenData()?.id ?? 0);
+  }, []);
+
+  function onSubmit() {
+    dispatch(doDeleteLocation(location));
+  }
+
+  function closeAfterSuccess() {
+    dispatch(doGetAllLocations());
+    dispatch(resetDeleteLocationState({}));
+    closeCallback(true);
+  }
+
+  return (
+    <DialogContent className="sm:max-w-[425px]">
+      <DialogHeader>
+        <DialogTitle>Remover Localização</DialogTitle>
+      </DialogHeader>
+      {(deleteLocationState?.status == "idle" ||
+        deleteLocationState?.status == "failure") && (
+        <div className="flex flex-col w-full h-full justify-center items-center gap-6 mt-4">
+          <p className="font-medium text-lg text-center">
+            Confirma que deseja remover a localização?
+          </p>
+          {deleteLocationState?.status === "failure" && (
+            <p className="font-normal text-md text-center text-red-700">
+              {deleteLocationState?.errorMsg}
+            </p>
+          )}
+          <div className="flex flex-row justify-center items-start gap-16">
+            <Button
+              variant={"default"}
+              onClick={() => {
+                closeCallback(true);
+              }}
+              className="mt-4"
+            >
+              Cancelar
+            </Button>
+            <Button variant={"destructive"} onClick={onSubmit} className="mt-4">
+              Remover
+            </Button>
+          </div>
+        </div>
+      )}
+      {deleteLocationState?.status == "loading" && (
+        <div className="flex w-full h-full justify-center items-center">
+          <Loader2 className="my-8 h-20 w-20 animate-spin" />
+        </div>
+      )}
+      {deleteLocationState?.status == "success" && (
+        <div className="flex flex-col w-full h-full justify-center items-center gap-6 mt-4">
+          <p className="font-medium text-lg">
+            Localização removida com sucesso
+          </p>
           <CheckCircle2 size={48} className="text-green-500" />
           <Button
             variant={"default"}

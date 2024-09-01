@@ -90,7 +90,7 @@ export const doCreateLocation = createAsyncThunk(
   }
 );
 
-export const createLocationsSlice = createSlice({
+export const createLocationSlice = createSlice({
   name: "createLocations",
   initialState: initialCreateLocationState,
   reducers: {
@@ -120,9 +120,127 @@ export const createLocationsSlice = createSlice({
   },
 });
 
-export const { resetCreateLocationState } = createLocationsSlice.actions;
+export const { resetCreateLocationState } = createLocationSlice.actions;
+
+export interface UpdateLocationState {
+  status: "idle" | "loading" | "success" | "failure";
+  error: boolean;
+  errorMsg: string | undefined;
+  location?: Location;
+}
+
+const initialUpdateLocationState: UpdateLocationState = {
+  status: "idle",
+  error: false,
+  errorMsg: undefined,
+  location: undefined,
+};
+
+export const doUpdateLocation = createAsyncThunk(
+  "locations/doUpdateLocation",
+  async (location: Location) => {
+    const response = await ApiClient.put("/v1/locations", location).catch(
+      function (error) {
+        throw new Error(error.response.data.msg);
+      }
+    );
+    return response.data;
+  }
+);
+
+export const updateLocationSlice = createSlice({
+  name: "UpdateLocations",
+  initialState: initialUpdateLocationState,
+  reducers: {
+    resetUpdateLocationState: (state, action) => {
+      return initialUpdateLocationState;
+    },
+  },
+  extraReducers(builder) {
+    builder
+      .addCase(doUpdateLocation.pending, (state, _) => {
+        state.status = "loading";
+        state.error = false;
+        state.errorMsg = undefined;
+      })
+      .addCase(doUpdateLocation.fulfilled, (state, action) => {
+        state.status = "success";
+        state.error = false;
+        state.errorMsg = undefined;
+        state.location = action.payload.location as Location;
+      })
+      .addCase(doUpdateLocation.rejected, (state, action) => {
+        state.status = "failure";
+        state.error = true;
+        state.errorMsg = action.error.message;
+        state.location = undefined;
+      });
+  },
+});
+
+export const { resetUpdateLocationState } = updateLocationSlice.actions;
+
+export interface DeleteLocationState {
+  status: "idle" | "loading" | "success" | "failure";
+  error: boolean;
+  errorMsg: string | undefined;
+  location?: Location;
+}
+
+const initialDeleteLocationState: DeleteLocationState = {
+  status: "idle",
+  error: false,
+  errorMsg: undefined,
+  location: undefined,
+};
+
+export const doDeleteLocation = createAsyncThunk(
+  "locations/doUpdateLocation",
+  async (location: Location) => {
+    const response = await ApiClient.delete(
+      "/v1/locations/" + location.id
+    ).catch(function (error) {
+      throw new Error(error.response.data.msg);
+    });
+    return response.data;
+  }
+);
+
+export const deleteLocationSlice = createSlice({
+  name: "DeleteLocations",
+  initialState: initialDeleteLocationState,
+  reducers: {
+    resetDeleteLocationState: (state, action) => {
+      return initialDeleteLocationState;
+    },
+  },
+  extraReducers(builder) {
+    builder
+      .addCase(doDeleteLocation.pending, (state, _) => {
+        state.status = "loading";
+        state.error = false;
+        state.errorMsg = undefined;
+      })
+      .addCase(doDeleteLocation.fulfilled, (state, action) => {
+        state.status = "success";
+        state.error = false;
+        state.errorMsg = undefined;
+        state.location = action.payload.location as Location;
+      })
+      .addCase(doDeleteLocation.rejected, (state, action) => {
+        state.status = "failure";
+        state.error = true;
+        state.errorMsg = action.error.message;
+        state.location = undefined;
+      });
+  },
+});
+
+export const { resetDeleteLocationState } = deleteLocationSlice.actions;
 
 export default combineReducers({
   getAllLocationsSlice: getAllLocationsSlice.reducer,
-  createLocationsSlice: createLocationsSlice.reducer,
+  createLocationSlice: createLocationSlice.reducer,
+  updateLocationSlice: updateLocationSlice.reducer,
+  deleteLocationSlice: deleteLocationSlice.reducer,
 });
