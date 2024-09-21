@@ -15,10 +15,8 @@ import { CheckCircle2, Loader2, Plus, Search, Trash2 } from "lucide-react";
 import {
   Card,
   CardContent,
-  CardDescription,
   CardFooter,
   CardHeader,
-  CardTitle,
 } from "@/components/ui/card";
 import styles from "./styles.module.css";
 import Image from "next/image";
@@ -169,14 +167,7 @@ function BookComponent({ book }: BookComponentProps): React.ReactElement {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   return (
     <Card className="w-[280px] my-0 mx-auto shadow-md">
-      <CardHeader>
-        <CardTitle>{book.title}</CardTitle>
-        <CardDescription>
-          {book.authors
-            ?.map((author) => author.name)
-            ?.reduce((prev, current) => `${prev}, ${current}`)}
-        </CardDescription>
-      </CardHeader>
+      <CardHeader>{book.title}</CardHeader>
       <CardContent>
         <div className="w-full h-[138px] relative">
           <Image

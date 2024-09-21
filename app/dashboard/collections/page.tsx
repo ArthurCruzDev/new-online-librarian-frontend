@@ -11,14 +11,7 @@ import {
   resetDeleteCollectionState,
 } from "./collectionsSlice";
 import { Button } from "@/components/ui/button";
-import {
-  CheckCircle2,
-  Edit2,
-  Loader2,
-  Plus,
-  Search,
-  Trash2,
-} from "lucide-react";
+import { CheckCircle2, Loader2, Plus, Search, Trash2 } from "lucide-react";
 import {
   Card,
   CardContent,
@@ -29,7 +22,6 @@ import styles from "./styles.module.css";
 import Image from "next/image";
 import { Input } from "@/components/ui/input";
 import debounce from "lodash.debounce";
-import { Label } from "@/components/ui/label";
 import {
   DialogHeader,
   DialogFooter,
@@ -37,7 +29,6 @@ import {
   DialogTrigger,
   DialogContent,
   DialogTitle,
-  DialogDescription,
 } from "@/components/ui/dialog";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
