@@ -9,7 +9,7 @@ import {
   Book,
   resetCreateBookState,
   resetDeleteBookState,
-} from "./booksSlice";
+} from "../booksSlice";
 import { Button } from "@/components/ui/button";
 import { CheckCircle2, Loader2, Plus, Search, Trash2 } from "lucide-react";
 import {
@@ -18,7 +18,6 @@ import {
   CardFooter,
   CardHeader,
 } from "@/components/ui/card";
-import styles from "./styles.module.css";
 import Image from "next/image";
 import { Input } from "@/components/ui/input";
 import debounce from "lodash.debounce";
@@ -46,8 +45,8 @@ import {
 
 export default function BooksPage() {
   const dispatch = useAppDispatch();
-  const getAllBooksState = useAppSelector(
-    (state) => state.books.getAllBooksSlice
+  const createBookState = useAppSelector(
+    (state) => state.books.createBookSlice
   );
   const [search, setSearch] = useState("");
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -66,8 +65,8 @@ export default function BooksPage() {
 
   useEffect(() => {
     if (
-      getAllBooksState.status === "idle" ||
-      getAllBooksState.status === "success"
+      createBookState.status === "idle" ||
+      createBookState.status === "success"
     ) {
       dispatch(
         doGetAllBooksFromUser({
@@ -78,79 +77,47 @@ export default function BooksPage() {
     }
   }, []);
 
-  const getBooks = useCallback(() => {
-    return getAllBooksState.books
-      .filter((book) => {
-        if (search === "") {
-          return true;
-        }
-        return book.title.toLowerCase().includes(search.toLowerCase());
-      })
-      .map<React.ReactElement>((book, index) => {
-        return <BookComponent key={index} book={book} />;
-      });
-  }, [getAllBooksState.books, search]);
-
   return (
     <main className="flex w-full h-full flex-col justify-center items-center">
       <div className="w-full flex justify-start items-center mb-7">
-        <h1 className="font-serif font-semibold text-3xl">Livros</h1>
-
-        <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-          <DialogTrigger asChild>
-            <Button
-              variant="default"
-              size={"sm"}
-              className="ml-5"
-              onClick={() => setDialogOpen(true)}
-            >
-              <Plus />
-            </Button>
-          </DialogTrigger>
-          <AddEditBook
-            book={undefined}
-            closeCallback={() => setDialogOpen(false)}
-          />
-        </Dialog>
+        <h1 className="font-serif font-semibold text-3xl">
+          Cadastrar Novo Livro
+        </h1>
         <div className="flex-grow"></div>
-        <div className="flex w-full max-w-sm items-center space-x-2">
-          <Search className="relative left-9 text-gray-500" size={"24px"} />
-          <Input
-            className="pl-8"
-            type="text"
-            placeholder="Buscar"
-            onChange={handleSearchChange}
-          />
-        </div>
       </div>
-      <div className={styles.grid + " w-full h-full"}>
-        {(getAllBooksState == null ||
-          getAllBooksState.status == null ||
-          getAllBooksState.status === "idle") && (
+      <div className={" w-full h-full"}>
+        {(createBookState == null ||
+          createBookState.status == null ||
+          createBookState.status === "idle") && (
           <p className="">
             Você não possui nenhuma coleção cadastrada no momento.
             <br />
             Clique no botão <strong>+</strong> para criar uma nova coleção.
           </p>
         )}
-        {getAllBooksState != null &&
-          getAllBooksState.status != null &&
-          getAllBooksState.status === "success" &&
-          getBooks()}
-        {getAllBooksState != null &&
-          getAllBooksState.status != null &&
-          getAllBooksState.status === "loading" && (
+        {createBookState != null &&
+          createBookState.status != null &&
+          createBookState.status === "success" && (
+            <p className="">
+              Livro Criado com Sucesso
+              <br />
+              <CheckCircle2 size={48} className="text-green-500" />
+            </p>
+          )}
+        {createBookState != null &&
+          createBookState.status != null &&
+          createBookState.status === "loading" && (
             <div className="flex w-full h-full justify-center items-center">
               <Loader2 className="mt-16 h-20 w-20 animate-spin" />
             </div>
           )}
-        {(getAllBooksState == null ||
-          getAllBooksState.status == null ||
-          getAllBooksState.status === "failure") && (
+        {(createBookState == null ||
+          createBookState.status == null ||
+          createBookState.status === "failure") && (
           <p className="">
-            Houve uma falha ao tentar recuperar seus livros
+            Houve uma falha ao cadastrar o livro.
             <br />
-            {getAllBooksState.errorMsg}
+            {createBookState.errorMsg}
           </p>
         )}
       </div>
@@ -343,7 +310,7 @@ export function AddEditBook({
       )}
       {createBookState?.status == "success" && (
         <div className="flex flex-col w-full h-full justify-center items-center gap-6 mt-4">
-          <p className="font-medium text-lg">Livro criada com sucesso</p>
+          <p className="font-medium text-lg">Livro criado com sucesso</p>
           <CheckCircle2 size={48} className="text-green-500" />
           <Button
             variant={"default"}

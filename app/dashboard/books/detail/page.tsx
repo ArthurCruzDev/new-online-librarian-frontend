@@ -9,16 +9,14 @@ import {
   Book,
   resetCreateBookState,
   resetDeleteBookState,
-} from "./booksSlice";
+} from "../booksSlice";
 import { Button } from "@/components/ui/button";
 import { CheckCircle2, Loader2, Plus, Search, Trash2 } from "lucide-react";
 import {
   Card,
   CardContent,
-  CardDescription,
   CardFooter,
   CardHeader,
-  CardTitle,
 } from "@/components/ui/card";
 import styles from "./styles.module.css";
 import Image from "next/image";
@@ -28,19 +26,31 @@ import {
   DialogHeader,
   DialogFooter,
   Dialog,
+  DialogTrigger,
   DialogContent,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { z } from "zod";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { useForm } from "react-hook-form";
 import { getTokenData } from "@/lib/api_client";
-import { useRouter } from "next/navigation";
+import {
+  Form,
+  FormControl,
+  FormDescription,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form";
 
 export default function BooksPage() {
-  const router = useRouter();
   const dispatch = useAppDispatch();
   const getAllBooksState = useAppSelector(
     (state) => state.books.getAllBooksSlice
   );
   const [search, setSearch] = useState("");
+  const [dialogOpen, setDialogOpen] = useState(false);
 
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setSearch(e.target.value);
@@ -85,14 +95,23 @@ export default function BooksPage() {
     <main className="flex w-full h-full flex-col justify-center items-center">
       <div className="w-full flex justify-start items-center mb-7">
         <h1 className="font-serif font-semibold text-3xl">Livros</h1>
-        <Button
-          variant="default"
-          size={"sm"}
-          className="ml-5"
-          onClick={() => router.push("books/new")}
-        >
-          <Plus />
-        </Button>
+
+        <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+          <DialogTrigger asChild>
+            <Button
+              variant="default"
+              size={"sm"}
+              className="ml-5"
+              onClick={() => setDialogOpen(true)}
+            >
+              <Plus />
+            </Button>
+          </DialogTrigger>
+          <AddEditBook
+            book={undefined}
+            closeCallback={() => setDialogOpen(false)}
+          />
+        </Dialog>
         <div className="flex-grow"></div>
         <div className="flex w-full max-w-sm items-center space-x-2">
           <Search className="relative left-9 text-gray-500" size={"24px"} />
@@ -109,9 +128,9 @@ export default function BooksPage() {
           getAllBooksState.status == null ||
           getAllBooksState.status === "idle") && (
           <p className="">
-            Você não possui nenhum livro cadastrado no momento.
+            Você não possui nenhuma coleção cadastrada no momento.
             <br />
-            Clique no botão <strong>+</strong> para criar um novo livro.
+            Clique no botão <strong>+</strong> para criar uma nova coleção.
           </p>
         )}
         {getAllBooksState != null &&
@@ -148,14 +167,7 @@ function BookComponent({ book }: BookComponentProps): React.ReactElement {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   return (
     <Card className="w-[280px] my-0 mx-auto shadow-md">
-      <CardHeader>
-        <CardTitle>{book.title}</CardTitle>
-        <CardDescription>
-          {book.authors
-            ?.map((author) => author.name)
-            ?.reduce((prev, current) => `${prev}, ${current}`)}
-        </CardDescription>
-      </CardHeader>
+      <CardHeader>{book.title}</CardHeader>
       <CardContent>
         <div className="w-full h-[138px] relative">
           <Image
@@ -184,6 +196,12 @@ function BookComponent({ book }: BookComponentProps): React.ReactElement {
           <Trash2 />
         </Button>
       </CardFooter>
+      <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
+        <AddEditBook
+          book={book}
+          closeCallback={() => setEditDialogOpen(false)}
+        />
+      </Dialog>
       <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
         <DeleteBook
           book={book}
@@ -191,6 +209,153 @@ function BookComponent({ book }: BookComponentProps): React.ReactElement {
         />
       </Dialog>
     </Card>
+  );
+}
+
+type AddEditBookProps = {
+  book?: Book;
+  closeCallback: Function;
+};
+
+export function AddEditBook({
+  book,
+  closeCallback,
+}: AddEditBookProps): React.ReactElement {
+  const [userId, setUserId] = useState(0);
+
+  const dispatch = useAppDispatch();
+  const createBookState = useAppSelector(
+    (state) => state.books.createBookSlice
+  );
+
+  const formSchema = z.object({
+    name: z.string().min(1).max(255),
+  });
+
+  const form = useForm<z.infer<typeof formSchema>>({
+    resolver: zodResolver(formSchema),
+    defaultValues: {
+      name: "",
+    },
+  });
+
+  useEffect(() => {
+    setUserId(getTokenData()?.id ?? 0);
+    if (book != null && book != undefined) {
+      form.setValue("name", book.title);
+    }
+  }, []);
+
+  function onSubmit(values: z.infer<typeof formSchema>) {
+    let newBook: Book = {
+      id: book?.id,
+      title: values.name,
+      authors: [
+        {
+          name: "Robson",
+        },
+      ],
+      publisher: "",
+      languages: [{ name: "PT-BR", code: "pt-br" }],
+      location: {
+        id: 0,
+        name: "",
+        user_id: 0,
+      },
+      user_id: book?.user_id ?? userId,
+    };
+    if (book?.id != undefined) {
+      dispatch(doUpdateBook(newBook));
+    } else {
+      dispatch(doCreateBook(newBook));
+    }
+  }
+
+  function closeAfterSuccess() {
+    dispatch(
+      doGetAllBooksFromUser({
+        page: 1,
+        pageSize: 10,
+      })
+    );
+    dispatch(resetCreateBookState({}));
+    closeCallback(true);
+  }
+
+  return (
+    <DialogContent className="sm:max-w-[425px]">
+      <DialogHeader>
+        <DialogTitle>{book?.id == null ? "Criar" : "Editar"} Livro</DialogTitle>
+      </DialogHeader>
+      {createBookState?.status == "idle" && (
+        <Form {...form}>
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
+            <FormField
+              control={form.control}
+              name="name"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Nome</FormLabel>
+                  <FormControl>
+                    <Input id="bookName" className="col-span-3" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <Button type="submit">
+              {book?.id == null ? "Criar" : "Editar"}
+            </Button>
+          </form>
+        </Form>
+      )}
+      {createBookState?.status == "failure" && (
+        <Form {...form}>
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
+            <FormField
+              control={form.control}
+              name="name"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Nome</FormLabel>
+                  <FormControl>
+                    <Input id="bookName" className="col-span-3" {...field} />
+                  </FormControl>
+                  {createBookState?.error && (
+                    <FormDescription className="text-red-700 font-semibold">
+                      {createBookState?.errorMsg}
+                    </FormDescription>
+                  )}
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <Button type="submit">
+              {book?.id == null ? "Criar" : "Editar"}
+            </Button>
+          </form>
+        </Form>
+      )}
+      {createBookState?.status == "loading" && (
+        <div className="flex w-full h-full justify-center items-center">
+          <Loader2 className="my-8 h-20 w-20 animate-spin" />
+        </div>
+      )}
+      {createBookState?.status == "success" && (
+        <div className="flex flex-col w-full h-full justify-center items-center gap-6 mt-4">
+          <p className="font-medium text-lg">Livro criada com sucesso</p>
+          <CheckCircle2 size={48} className="text-green-500" />
+          <Button
+            variant={"default"}
+            onClick={closeAfterSuccess}
+            className="mt-4"
+          >
+            Fechar
+          </Button>
+        </div>
+      )}
+      <DialogFooter></DialogFooter>
+    </DialogContent>
   );
 }
 
