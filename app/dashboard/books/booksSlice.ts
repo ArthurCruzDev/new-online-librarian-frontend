@@ -7,6 +7,7 @@ import {
 import { access, stat } from "fs";
 import { Collection } from "../collections/collectionsSlice";
 import { Location } from "../locations/locationSlice";
+import { AxiosError } from "axios";
 
 export interface Author {
   name: string;
@@ -35,6 +36,22 @@ export interface Book {
   cover?: string;
   collection?: Collection;
   location: Location;
+  user_id: number;
+}
+
+export interface CreateBookDTO {
+  id?: number;
+  title: string;
+  authors: Author[];
+  publisher: string;
+  languages: Language[];
+  edition?: string;
+  isbn?: string;
+  year?: string;
+  genres?: Genre[];
+  cover?: string;
+  collection_id?: number;
+  location_id: number;
   user_id: number;
 }
 
@@ -99,6 +116,7 @@ export interface CreateBookState {
   status: "idle" | "loading" | "success" | "failure";
   error: boolean;
   errorMsg: string | undefined;
+  fieldValidations?: Object;
   book?: Book;
 }
 
@@ -107,19 +125,31 @@ const initialCreateBookState: CreateBookState = {
   error: false,
   errorMsg: undefined,
   book: undefined,
+  fieldValidations: undefined,
 };
 
-export const doCreateBook = createAsyncThunk(
-  "books/doCreateBook",
-  async (book: Book) => {
-    const response = await ApiClient.post("/v1/books", book).catch(function (
-      error
-    ) {
-      throw new Error(error.response.data.msg);
-    });
-    return response.data;
+export interface CreateBookBadRequest {
+  code: Number;
+  field_validations: Object;
+  msg: string;
+}
+
+export const doCreateBook = createAsyncThunk<
+  Book,
+  CreateBookDTO,
+  { rejectValue: CreateBookBadRequest }
+>("books/doCreateBook", async (book: CreateBookDTO, { rejectWithValue }) => {
+  try {
+    const response = await ApiClient.post("/v1/books", book);
+    return response?.data as Book;
+  } catch (err: any) {
+    const error: AxiosError<CreateBookBadRequest> = err as any;
+    if (!error.response) {
+      throw err;
+    }
+    return rejectWithValue(error.response.data);
   }
-);
+});
 
 export const createBookSlice = createSlice({
   name: "createBooks",
@@ -140,13 +170,14 @@ export const createBookSlice = createSlice({
         state.status = "success";
         state.error = false;
         state.errorMsg = undefined;
-        state.book = action.payload.book as Book;
+        state.book = action.payload;
       })
       .addCase(doCreateBook.rejected, (state, action) => {
         state.status = "failure";
         state.error = true;
-        state.errorMsg = action.error.message;
+        state.errorMsg = action.payload?.msg;
         state.book = undefined;
+        state.fieldValidations = action.payload?.field_validations;
       });
   },
 });
