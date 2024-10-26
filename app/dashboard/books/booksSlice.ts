@@ -72,16 +72,32 @@ const initialGetAllBooksState: GetAllBooksState = {
 export interface GetAllBooksFromUserParams {
   page: number;
   pageSize: number;
+  query: string | undefined;
+  location_id: number | undefined;
+  collection_id: number | undefined;
 }
 
 export const doGetAllBooksFromUser = createAsyncThunk(
   "books/getAllBooks",
   async (params: GetAllBooksFromUserParams) => {
-    const response = await ApiClient.get(
-      `/v1/books?page=${params.page ?? 0}&pageSize=${params.pageSize ?? 10}`
-    ).catch(function (error) {
-      throw new Error(error.response.data.msg);
-    });
+    let query_params = `page=${params.page ?? 0}&pageSize=${
+      params.pageSize ?? 10
+    }`;
+    if (params.query != undefined) {
+      query_params += `&query=${params.query}`;
+    }
+    if (params.collection_id != undefined) {
+      query_params += `&collection_id=${params.collection_id}`;
+    }
+    if (params.location_id != undefined) {
+      query_params += `&location_id=${params.location_id}`;
+    }
+
+    const response = await ApiClient.get(`/v1/books?${query_params}`).catch(
+      function (error) {
+        throw new Error(error.response.data.msg);
+      }
+    );
     return response.data;
   }
 );

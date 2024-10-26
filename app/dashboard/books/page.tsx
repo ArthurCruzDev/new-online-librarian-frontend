@@ -2,16 +2,22 @@
 import { useAppDispatch, useAppSelector } from "@/lib/hooks";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
-  doCreateBook,
   doDeleteBook,
   doGetAllBooksFromUser,
-  doUpdateBook,
   Book,
-  resetCreateBookState,
   resetDeleteBookState,
+  GetAllBooksFromUserParams,
 } from "./booksSlice";
 import { Button } from "@/components/ui/button";
-import { CheckCircle2, Loader2, Plus, Search, Trash2 } from "lucide-react";
+import {
+  Check,
+  CheckCircle2,
+  ChevronsUpDown,
+  Loader2,
+  Plus,
+  Search,
+  Trash2,
+} from "lucide-react";
 import {
   Card,
   CardContent,
@@ -33,6 +39,24 @@ import {
 } from "@/components/ui/dialog";
 import { getTokenData } from "@/lib/api_client";
 import { useRouter } from "next/navigation";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from "@/components/ui/command";
+import { FormControl, FormLabel, FormMessage } from "@/components/ui/form";
+import { cn } from "@/lib/utils";
+import { doGetAllCollections } from "../collections/collectionsSlice";
+import { doGetAllLocations } from "../locations/locationSlice";
+import { Label } from "@/components/ui/label";
 
 export default function BooksPage() {
   const router = useRouter();
@@ -40,46 +64,61 @@ export default function BooksPage() {
   const getAllBooksState = useAppSelector(
     (state) => state.books.getAllBooksSlice
   );
-  const [search, setSearch] = useState("");
+  const getAllCollectionsState = useAppSelector(
+    (state) => state.collections.getAllCollectionsSlice
+  );
+  const getAllLocationsState = useAppSelector(
+    (state) => state.locations.getAllLocationsSlice
+  );
 
-  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setSearch(e.target.value);
-  };
-  const debouncedResults = useMemo(() => {
-    return debounce(handleSearchChange, 200);
-  }, []);
+  const [listParams, setListParams] = useState<GetAllBooksFromUserParams>({
+    page: 1,
+    pageSize: 1,
+    query: undefined,
+    collection_id: undefined,
+    location_id: undefined,
+  });
+
+  function refreshBooks(params: GetAllBooksFromUserParams) {
+    dispatch(doGetAllBooksFromUser(params));
+  }
+
+  const debouncedResults = useMemo(() => debounce(refreshBooks, 300), []);
   useEffect(() => {
     return () => {
       debouncedResults.cancel();
     };
   });
 
+  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setListParams((oldValue) => ({ ...oldValue, query: e.target.value }));
+  };
+
+  useEffect(() => {
+    debouncedResults(listParams);
+  }, [listParams]);
+
   useEffect(() => {
     if (
       getAllBooksState.status === "idle" ||
       getAllBooksState.status === "success"
     ) {
-      dispatch(
-        doGetAllBooksFromUser({
-          page: 1,
-          pageSize: 1,
-        })
-      );
+      dispatch(doGetAllBooksFromUser(listParams));
     }
   }, []);
 
+  useEffect(() => {
+    dispatch(doGetAllCollections());
+    dispatch(doGetAllLocations());
+  }, []);
+
   const getBooks = useCallback(() => {
-    return getAllBooksState.books
-      .filter((book) => {
-        if (search === "") {
-          return true;
-        }
-        return book.title.toLowerCase().includes(search.toLowerCase());
-      })
-      .map<React.ReactElement>((book, index) => {
-        return <BookComponent key={index} book={book} />;
-      });
-  }, [getAllBooksState.books, search]);
+    return getAllBooksState.books.map<React.ReactElement>((book, index) => {
+      return (
+        <BookComponent key={index} book={book} listBooksParams={listParams} />
+      );
+    });
+  }, [getAllBooksState.books]);
 
   return (
     <main className="flex w-full h-full flex-col justify-center items-center">
@@ -94,8 +133,137 @@ export default function BooksPage() {
           <Plus />
         </Button>
         <div className="flex-grow"></div>
-        <div className="flex w-full max-w-sm items-center space-x-2">
-          <Search className="relative left-9 text-gray-500" size={"24px"} />
+        <div className="flex w-full max-w-72 items-center space-x-2 mr-5">
+          <div className="w-full flex flex-col">
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button
+                  variant="outline"
+                  role="combobox"
+                  className={cn(
+                    "w-full justify-between",
+                    !listParams.location_id && "text-muted-foreground"
+                  )}
+                >
+                  <span className="w-11/12 text-left overflow-clip">
+                    {listParams.location_id !== undefined
+                      ? getAllLocationsState.locations.find(
+                          (location) => location.id === listParams.location_id
+                        )?.name
+                      : "Selecione a Localização"}
+                  </span>
+                  <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-[200px] p-0">
+                <Command>
+                  <CommandInput placeholder="Pesquisar Coleções..." />
+                  <CommandList>
+                    <CommandEmpty>Nenhuma localização encontrada</CommandEmpty>
+                    <CommandGroup>
+                      {getAllLocationsState.locations.map((location) => (
+                        <CommandItem
+                          value={location.name}
+                          key={location.id}
+                          onSelect={() => {
+                            if (listParams.location_id === location.id) {
+                              setListParams((oldValue) => ({
+                                ...oldValue,
+                                location_id: undefined,
+                              }));
+                            } else {
+                              setListParams((oldValue) => ({
+                                ...oldValue,
+                                location_id: location.id,
+                              }));
+                            }
+                          }}
+                        >
+                          <Check
+                            className={cn(
+                              "mr-2 h-4 w-4",
+                              listParams.location_id === location.id
+                                ? "opacity-100"
+                                : "opacity-0"
+                            )}
+                          />
+                          {location.name}
+                        </CommandItem>
+                      ))}
+                    </CommandGroup>
+                  </CommandList>
+                </Command>
+              </PopoverContent>
+            </Popover>
+          </div>
+        </div>
+        <div className="flex w-full max-w-72 items-center space-x-2 mr-5">
+          <div className="w-full flex flex-col">
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button
+                  variant="outline"
+                  role="combobox"
+                  className={cn(
+                    "w-full justify-between",
+                    !listParams.collection_id && "text-muted-foreground"
+                  )}
+                >
+                  <span className="w-11/12 text-left overflow-clip">
+                    {listParams.collection_id !== undefined
+                      ? getAllCollectionsState.collections.find(
+                          (collection) =>
+                            collection.id === listParams.collection_id
+                        )?.name
+                      : "Selecione a Coleção"}
+                  </span>
+                  <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-[200px] p-0">
+                <Command>
+                  <CommandInput placeholder="Pesquisar Coleções..." />
+                  <CommandList>
+                    <CommandEmpty>Nenhuma coleção encontrada</CommandEmpty>
+                    <CommandGroup>
+                      {getAllCollectionsState.collections.map((collection) => (
+                        <CommandItem
+                          value={collection.name}
+                          key={collection.id}
+                          onSelect={() => {
+                            if (listParams.collection_id === collection.id) {
+                              setListParams((oldValue) => ({
+                                ...oldValue,
+                                collection_id: undefined,
+                              }));
+                            } else {
+                              setListParams((oldValue) => ({
+                                ...oldValue,
+                                collection_id: collection.id,
+                              }));
+                            }
+                          }}
+                        >
+                          <Check
+                            className={cn(
+                              "mr-2 h-4 w-4",
+                              listParams.collection_id === collection.id
+                                ? "opacity-100"
+                                : "opacity-0"
+                            )}
+                          />
+                          {collection.name}
+                        </CommandItem>
+                      ))}
+                    </CommandGroup>
+                  </CommandList>
+                </Command>
+              </PopoverContent>
+            </Popover>
+          </div>
+        </div>
+        <div className="flex w-full max-w-96 items-center relative">
+          <Search className="absolute left-1 text-gray-500" size={"24px"} />
           <Input
             className="pl-8"
             type="text"
@@ -141,15 +309,23 @@ export default function BooksPage() {
 
 type BookComponentProps = {
   book: Book;
+  listBooksParams: GetAllBooksFromUserParams;
 };
 
-function BookComponent({ book }: BookComponentProps): React.ReactElement {
+function BookComponent({
+  book,
+  listBooksParams,
+}: BookComponentProps): React.ReactElement {
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   return (
     <Card className="w-[280px] my-0 mx-auto shadow-md">
-      <CardHeader>
-        <CardTitle>{book.title}</CardTitle>
+      <CardHeader className="h-40">
+        <CardTitle>
+          {book.title.length <= 55
+            ? book.title
+            : book.title.substring(0, 53) + "..."}
+        </CardTitle>
         <CardDescription>
           {book.authors
             ?.map((author) => author.name)
@@ -157,13 +333,19 @@ function BookComponent({ book }: BookComponentProps): React.ReactElement {
         </CardDescription>
       </CardHeader>
       <CardContent>
-        <div className="w-full h-[138px] relative">
+        <div className="w-full h-[300px] relative">
           <Image
             src={
-              "https://images.pexels.com/photos/1370295/pexels-photo-1370295.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=1"
+              book.cover === undefined ||
+              book.cover === "" ||
+              book.cover === null
+                ? "https://d28hgpri8am2if.cloudfront.net/book_images/onix/cvr9781787550360/classic-book-cover-foiled-journal-9781787550360_hr.jpg"
+                : book.cover
             }
-            layout="fill"
-            objectFit="cover"
+            style={{
+              objectFit: "cover",
+            }}
+            fill
             alt="book image"
             quality={75}
             priority={false}
@@ -188,6 +370,7 @@ function BookComponent({ book }: BookComponentProps): React.ReactElement {
         <DeleteBook
           book={book}
           closeCallback={() => setDeleteDialogOpen(false)}
+          listBooksParams={listBooksParams}
         />
       </Dialog>
     </Card>
@@ -197,11 +380,13 @@ function BookComponent({ book }: BookComponentProps): React.ReactElement {
 type DeleteBookProps = {
   book: Book;
   closeCallback: Function;
+  listBooksParams: GetAllBooksFromUserParams;
 };
 
 export function DeleteBook({
   book,
   closeCallback,
+  listBooksParams,
 }: DeleteBookProps): React.ReactElement {
   const [userId, setUserId] = useState(0);
 
@@ -219,12 +404,7 @@ export function DeleteBook({
   }
 
   function closeAfterSuccess() {
-    dispatch(
-      doGetAllBooksFromUser({
-        page: 1,
-        pageSize: 10,
-      })
-    );
+    dispatch(doGetAllBooksFromUser(listBooksParams));
     dispatch(resetDeleteBookState({}));
     closeCallback(true);
   }

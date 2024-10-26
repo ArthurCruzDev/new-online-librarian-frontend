@@ -56,4 +56,7 @@ export default [
   {
     name: "Crimes Reais",
   },
+  {
+    name: "Não Especificado",
+  },
 ];
