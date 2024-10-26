@@ -73,6 +73,7 @@ export default function BooksPage() {
   const [userId, setUserId] = useState(0);
   const [auxAuthor, setAuxAuthor] = useState("");
   const [auxUrl, setAuxUrl] = useState("");
+  const [auxUrlErrorMsg, setAuxUrlErrorMsg] = useState("");
 
   const formSchema = z.object({
     name: z.string().min(1).max(255),
@@ -148,6 +149,8 @@ export default function BooksPage() {
     ) {
       if (createBookState.status === "success") {
         form.reset(formDefaultValues, { keepValues: false });
+        setUrl("");
+        setAuxUrl("");
       }
       setDialogOpen(true);
     }
@@ -164,7 +167,7 @@ export default function BooksPage() {
       isbn: values.isbn,
       year: values.year,
       genres: values.genres,
-      cover: values.cover,
+      cover: values.cover === null ? undefined : values.cover,
       collection_id: values.collection_id,
       location_id: values.location_id,
       user_id: userId,
@@ -210,6 +213,7 @@ export default function BooksPage() {
     const imageSrc = webcamRef.current?.getScreenshot();
     if (imageSrc) {
       setUrl(imageSrc);
+      form.setValue("cover", imageSrc);
     }
   }, [webcamRef]);
 
@@ -622,7 +626,7 @@ export default function BooksPage() {
                           />
                         )) ||
                           (url && (
-                            <Image
+                            <img
                               src={decodeURIComponent(url)}
                               alt="Screenshot"
                               width={540}
@@ -654,13 +658,21 @@ export default function BooksPage() {
                               className="hidden"
                               id="picture"
                               type="file"
+                              accept="image/jpg, image/png, image/svg, image/bmp, image/webp, image/jpeg"
                               ref={fileInpurRef}
                               onChange={(e) => {
                                 e.preventDefault();
                                 if (e.target.files != null) {
-                                  setUrl(
-                                    URL.createObjectURL(e.target.files[0] ?? "")
-                                  );
+                                  if (e.target.files[0].size > 1048576 * 5) {
+                                    alert("Favor utilizar imagens de até 5MB");
+                                    e.target.value = "";
+                                  } else {
+                                    let fileUrl = URL.createObjectURL(
+                                      e.target.files[0] ?? ""
+                                    );
+                                    setUrl(fileUrl);
+                                    form.setValue("cover", fileUrl);
+                                  }
                                 }
                               }}
                             />
@@ -672,19 +684,42 @@ export default function BooksPage() {
                                 <div className="grid gap-4">
                                   <div className="grid gap-2">
                                     <div className="grid grid-cols-8 items-center gap-2">
-                                      <Label htmlFor="width">URL</Label>
+                                      <Label htmlFor="link">URL</Label>
                                       <Input
-                                        id="width"
+                                        id="link"
                                         defaultValue=""
                                         className="col-span-7 h-8"
                                         onChange={(e) => {
+                                          setAuxUrlErrorMsg("");
                                           setAuxUrl(e.target.value);
                                         }}
                                       />
+                                      {(auxUrlErrorMsg !== "" && (
+                                        <p className="text-red-600 col-span-8">
+                                          {auxUrlErrorMsg}
+                                        </p>
+                                      )) || <></>}
                                       <Button
                                         onClick={(e) => {
                                           e.preventDefault();
-                                          setUrl(auxUrl);
+                                          if (
+                                            !auxUrl.startsWith("http://") &&
+                                            !auxUrl.startsWith("https://") &&
+                                            !(
+                                              auxUrl.endsWith(".png") ||
+                                              auxUrl.endsWith(".jpg") ||
+                                              auxUrl.endsWith(".jpeg") ||
+                                              auxUrl.endsWith(".svg") ||
+                                              auxUrl.endsWith(".webp") ||
+                                              auxUrl.endsWith(".bmp")
+                                            )
+                                          ) {
+                                            setAuxUrlErrorMsg("Link inválido");
+                                          } else {
+                                            setAuxUrlErrorMsg("");
+                                            setUrl(auxUrl);
+                                            form.setValue("cover", auxUrl);
+                                          }
                                         }}
                                       >
                                         Ok
@@ -701,6 +736,7 @@ export default function BooksPage() {
                               onClick={(e) => {
                                 e.preventDefault();
                                 setUrl(null);
+                                form.setValue("cover", "");
                               }}
                               variant={"destructive"}
                             >
