@@ -4,10 +4,8 @@ import {
   createAsyncThunk,
   createSlice,
 } from "@reduxjs/toolkit";
-import { access, stat } from "fs";
-import { Collection } from "../collections/collectionsSlice";
-import { Location } from "../locations/locationSlice";
 import { AxiosError } from "axios";
+import { Collection } from "../collections/collectionsSlice";
 
 export interface Author {
   name: string;
@@ -60,6 +58,8 @@ export interface GetAllBooksState {
   error: boolean;
   errorMsg: string | undefined;
   books: Book[];
+  totalItems: number;
+  currentPage: number;
 }
 
 const initialGetAllBooksState: GetAllBooksState = {
@@ -67,6 +67,8 @@ const initialGetAllBooksState: GetAllBooksState = {
   error: false,
   errorMsg: undefined,
   books: [],
+  totalItems: 0,
+  currentPage: 0,
 };
 
 export interface GetAllBooksFromUserParams {
@@ -80,7 +82,7 @@ export interface GetAllBooksFromUserParams {
 export const doGetAllBooksFromUser = createAsyncThunk(
   "books/getAllBooks",
   async (params: GetAllBooksFromUserParams) => {
-    let query_params = `page=${params.page ?? 0}&pageSize=${
+    let query_params = `page=${params.page ?? 0}&page_size=${
       params.pageSize ?? 10
     }`;
     if (params.query != undefined) {
@@ -118,6 +120,8 @@ export const getAllBooksSlice = createSlice({
         state.error = false;
         state.errorMsg = undefined;
         state.books = action.payload.items as Book[];
+        state.totalItems = action.payload.total_items;
+        state.currentPage = action.payload.page;
       })
       .addCase(doGetAllBooksFromUser.rejected, (state, action) => {
         state.status = "failure";

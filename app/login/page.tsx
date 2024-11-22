@@ -4,7 +4,7 @@ import { ModeToggle } from "@/components/mode-toggler";
 import { Button } from "@/components/ui/button";
 import { useEffect, useState } from "react";
 import { doLogin } from "./loginSlice";
-import { useAppDispatch, useAppSelector } from "@/lib/hooks";
+import { useAppDispatch, useAppSelector } from "@/lib/hooks/store_hooks";
 import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
 import { Loader2 } from "lucide-react";

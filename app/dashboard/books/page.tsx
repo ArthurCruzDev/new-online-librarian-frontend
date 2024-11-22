@@ -1,7 +1,7 @@
 "use client";
-import { useAppDispatch, useAppSelector } from "@/lib/hooks";
+import { useAppDispatch, useAppSelector } from "@/lib/hooks/store_hooks";
 import { useCallback, useEffect, useMemo, useState } from "react";
-import {
+import booksSlice, {
   doDeleteBook,
   doGetAllBooksFromUser,
   Book,
@@ -12,6 +12,10 @@ import { Button } from "@/components/ui/button";
 import {
   Check,
   CheckCircle2,
+  ChevronFirst,
+  ChevronLast,
+  ChevronLeft,
+  ChevronRight,
   ChevronsUpDown,
   Loader2,
   Plus,
@@ -38,7 +42,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { getTokenData } from "@/lib/api_client";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import {
   Popover,
   PopoverContent,
@@ -52,14 +56,25 @@ import {
   CommandItem,
   CommandList,
 } from "@/components/ui/command";
-import { FormControl, FormLabel, FormMessage } from "@/components/ui/form";
+import {
+  Pagination,
+  PaginationContent,
+  PaginationEllipsis,
+  PaginationItem,
+  PaginationLink,
+  PaginationNext,
+} from "@/components/ui/pagination";
 import { cn } from "@/lib/utils";
 import { doGetAllCollections } from "../collections/collectionsSlice";
 import { doGetAllLocations } from "../locations/locationSlice";
-import { Label } from "@/components/ui/label";
+import { listenerCount } from "process";
+
+const BOOK_COMPONENT_WIDTH = 280;
 
 export default function BooksPage() {
   const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
   const dispatch = useAppDispatch();
   const getAllBooksState = useAppSelector(
     (state) => state.books.getAllBooksSlice
@@ -72,45 +87,65 @@ export default function BooksPage() {
   );
 
   const [listParams, setListParams] = useState<GetAllBooksFromUserParams>({
-    page: 1,
-    pageSize: 1,
+    page: 0,
+    pageSize: 0,
     query: undefined,
     collection_id: undefined,
     location_id: undefined,
   });
 
+  useEffect(() => {
+    refreshBooks(listParams);
+  }, [listParams]);
+
+  function calcPageSizeBasedOnWidth(width: number): number {
+    return Math.floor((width / (BOOK_COMPONENT_WIDTH + 20)) * 1);
+  }
+
   function refreshBooks(params: GetAllBooksFromUserParams) {
+    if (params.page === 0) {
+      return;
+    }
     dispatch(doGetAllBooksFromUser(params));
   }
 
-  const debouncedResults = useMemo(() => debounce(refreshBooks, 300), []);
+  const debouncedSearch = useMemo(() => debounce(setListParams, 300), []);
   useEffect(() => {
     return () => {
-      debouncedResults.cancel();
+      debouncedSearch.cancel();
     };
   });
 
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setListParams((oldValue) => ({ ...oldValue, query: e.target.value }));
+    debouncedSearch((oldValue) => ({
+      ...oldValue,
+      page: 1,
+      query: e.target.value,
+    }));
   };
-
-  useEffect(() => {
-    debouncedResults(listParams);
-  }, [listParams]);
-
-  useEffect(() => {
-    if (
-      getAllBooksState.status === "idle" ||
-      getAllBooksState.status === "success"
-    ) {
-      dispatch(doGetAllBooksFromUser(listParams));
-    }
-  }, []);
 
   useEffect(() => {
     dispatch(doGetAllCollections());
     dispatch(doGetAllLocations());
+    if (getAllBooksState.status === "idle") {
+      const newState = {
+        ...listParams,
+        pageSize: calcPageSizeBasedOnWidth(window.innerWidth),
+        page: searchParams.get("page") ? Number(searchParams.get("page")) : 1,
+      };
+      setListParams(newState);
+    }
   }, []);
+
+  useEffect(() => {
+    const pageParam = searchParams.get("page");
+    if (pageParam != undefined && Number(pageParam) != listParams.page) {
+      setListParams((oldState) => ({
+        ...oldState,
+        page: Number(pageParam),
+      }));
+    }
+  }, [searchParams]);
 
   const getBooks = useCallback(() => {
     return getAllBooksState.books.map<React.ReactElement>((book, index) => {
@@ -119,6 +154,70 @@ export default function BooksPage() {
       );
     });
   }, [getAllBooksState.books]);
+
+  const getMiddlePagination = useCallback(() => {
+    const totalPages = Math.ceil(
+      getAllBooksState.totalItems / listParams.pageSize
+    );
+    console.log(totalPages);
+    const paginationItems = [];
+
+    for (let i = 0; i <= 7; i++) {
+      let pageNumber = 0;
+      if (i <= 3) {
+        if (getAllBooksState.currentPage + i - 4 > totalPages) {
+          break;
+        }
+        pageNumber = getAllBooksState.currentPage - 3 + i;
+        if (pageNumber < 1) {
+          continue;
+        }
+        if (
+          pageNumber ==
+            totalPages - (totalPages - getAllBooksState.currentPage) &&
+          totalPages - getAllBooksState.currentPage <= 2 &&
+          totalPages > 3
+        ) {
+          paginationItems.push(
+            <PaginationItem>
+              <PaginationEllipsis />
+            </PaginationItem>
+          );
+        }
+      } else if (i == 4) {
+        if (getAllBooksState.currentPage + i - 1 > totalPages) {
+          continue;
+        }
+        paginationItems.push(
+          <PaginationItem>
+            <PaginationEllipsis />
+          </PaginationItem>
+        );
+        continue;
+      } else {
+        if (getAllBooksState.currentPage + i - 4 > totalPages) {
+          continue;
+        }
+        pageNumber = getAllBooksState.currentPage - 3 + (i - 1);
+      }
+      paginationItems.push(
+        <PaginationItem>
+          <PaginationLink
+            onClick={(e) => {
+              e.preventDefault();
+              const params = new URLSearchParams(searchParams.toString());
+              params.set("page", String(pageNumber));
+              router.push(pathname + "?" + params.toString());
+            }}
+            isActive={getAllBooksState.currentPage === pageNumber}
+          >
+            {pageNumber}
+          </PaginationLink>
+        </PaginationItem>
+      );
+    }
+    return paginationItems;
+  }, [getAllBooksState.status]);
 
   return (
     <main className="flex w-full h-full flex-col justify-center items-center">
@@ -272,7 +371,7 @@ export default function BooksPage() {
           />
         </div>
       </div>
-      <div className={styles.grid + " w-full h-full"}>
+      <div className="w-full h-full">
         {(getAllBooksState == null ||
           getAllBooksState.status == null ||
           getAllBooksState.status === "idle") && (
@@ -284,8 +383,110 @@ export default function BooksPage() {
         )}
         {getAllBooksState != null &&
           getAllBooksState.status != null &&
-          getAllBooksState.status === "success" &&
-          getBooks()}
+          getAllBooksState.status === "success" && (
+            <>
+              <div className={styles.grid + " w-full h-full"}>{getBooks()}</div>
+              <div className="w-full mt-5">
+                <Pagination>
+                  <PaginationContent>
+                    <PaginationItem>
+                      <PaginationLink
+                        onClick={(e) => {
+                          e.preventDefault();
+                          const params = new URLSearchParams(
+                            searchParams.toString()
+                          );
+                          params.set("page", "1");
+                          router.push(pathname + "?" + params.toString());
+                        }}
+                      >
+                        <ChevronFirst className="h-4 w-4" />
+                      </PaginationLink>
+                    </PaginationItem>
+                    <PaginationItem>
+                      <PaginationLink
+                        onClick={(e) => {
+                          e.preventDefault();
+                          if (getAllBooksState.currentPage > 1) {
+                            const params = new URLSearchParams(
+                              searchParams.toString()
+                            );
+                            params.set(
+                              "page",
+                              String(getAllBooksState.currentPage - 1)
+                            );
+                            router.push(pathname + "?" + params.toString());
+                          }
+                        }}
+                      >
+                        <ChevronLeft
+                          className="h-4 w-4"
+                          opacity={getAllBooksState.currentPage > 1 ? 1 : 0.3}
+                        />
+                      </PaginationLink>
+                    </PaginationItem>
+                    {getMiddlePagination()}
+                    <PaginationItem>
+                      <PaginationLink
+                        onClick={(e) => {
+                          e.preventDefault();
+                          if (
+                            getAllBooksState.currentPage <
+                            Math.ceil(
+                              getAllBooksState.totalItems / listParams.pageSize
+                            )
+                          ) {
+                            const params = new URLSearchParams(
+                              searchParams.toString()
+                            );
+                            params.set(
+                              "page",
+                              String(getAllBooksState.currentPage + 1)
+                            );
+                            router.push(pathname + "?" + params.toString());
+                          }
+                        }}
+                      >
+                        <ChevronRight
+                          className="h-4 w-4"
+                          opacity={
+                            getAllBooksState.currentPage <
+                            Math.ceil(
+                              getAllBooksState.totalItems / listParams.pageSize
+                            )
+                              ? 1
+                              : 0.3
+                          }
+                        />
+                      </PaginationLink>
+                    </PaginationItem>
+                    <PaginationItem>
+                      <PaginationLink
+                        onClick={(e) => {
+                          e.preventDefault();
+                          const params = new URLSearchParams(
+                            searchParams.toString()
+                          );
+                          params.set(
+                            "page",
+                            String(
+                              Math.ceil(
+                                getAllBooksState.totalItems /
+                                  listParams.pageSize
+                              )
+                            )
+                          );
+                          router.push(pathname + "?" + params.toString());
+                        }}
+                      >
+                        <ChevronLast className="h-4 w-4" />
+                      </PaginationLink>
+                    </PaginationItem>
+                  </PaginationContent>
+                </Pagination>
+              </div>
+            </>
+          )}
         {getAllBooksState != null &&
           getAllBooksState.status != null &&
           getAllBooksState.status === "loading" && (
@@ -319,7 +520,7 @@ function BookComponent({
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   return (
-    <Card className="w-[280px] my-0 mx-auto shadow-md">
+    <Card className={`w-[${BOOK_COMPONENT_WIDTH}px] my-0 mx-auto shadow-md`}>
       <CardHeader className="h-40">
         <CardTitle>
           {book.title.length <= 55
@@ -418,7 +619,7 @@ export function DeleteBook({
         deleteBookState?.status == "failure") && (
         <div className="flex flex-col w-full h-full justify-center items-center gap-6 mt-4">
           <p className="font-medium text-lg text-center">
-            Confirma que deseja remover a coleção?
+            Confirma que deseja remover o livro?
           </p>
           {deleteBookState?.status === "failure" && (
             <p className="font-normal text-md text-center text-red-700">
@@ -448,7 +649,7 @@ export function DeleteBook({
       )}
       {deleteBookState?.status == "success" && (
         <div className="flex flex-col w-full h-full justify-center items-center gap-6 mt-4">
-          <p className="font-medium text-lg">Livro removida com sucesso</p>
+          <p className="font-medium text-lg">Livro removido com sucesso</p>
           <CheckCircle2 size={48} className="text-green-500" />
           <Button
             variant={"default"}

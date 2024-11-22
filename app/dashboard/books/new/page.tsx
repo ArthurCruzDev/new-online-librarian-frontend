@@ -1,5 +1,5 @@
 "use client";
-import { useAppDispatch, useAppSelector } from "@/lib/hooks";
+import { useAppDispatch, useAppSelector } from "@/lib/hooks/store_hooks";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   doCreateBook,
@@ -51,8 +51,8 @@ import {
   CommandList,
 } from "@/components/ui/command";
 import { Badge } from "@/components/ui/badge";
-import { doGetAllCollections } from "../../collections/collectionsSlice";
-import { doGetAllLocations } from "../../locations/locationSlice";
+import { doGetAllCollections } from "../../../collections/collectionsSlice";
+import { doGetAllLocations } from "../../../locations/locationSlice";
 import Webcam from "react-webcam";
 import { Label } from "@/components/ui/label";
 import languages from "../languages";
