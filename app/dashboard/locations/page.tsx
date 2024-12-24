@@ -6,6 +6,7 @@ import {
   doDeleteLocation,
   doGetAllLocations,
   doUpdateLocation,
+  GetAllLocationsState,
   Location,
   resetCreateLocationState,
   resetDeleteLocationState,

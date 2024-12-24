@@ -17,6 +17,7 @@ import {
   ChevronLeft,
   ChevronRight,
   ChevronsUpDown,
+  Edit2,
   Loader2,
   Plus,
   Search,
@@ -72,6 +73,7 @@ import { listenerCount } from "process";
 const BOOK_COMPONENT_WIDTH = 280;
 
 export default function BooksPage() {
+  //Hooks
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -86,6 +88,7 @@ export default function BooksPage() {
     (state) => state.locations.getAllLocationsSlice
   );
 
+  //States
   const [listParams, setListParams] = useState<GetAllBooksFromUserParams>({
     page: 0,
     pageSize: 0,
@@ -94,10 +97,93 @@ export default function BooksPage() {
     location_id: undefined,
   });
 
+  //useMemos
+  const debouncedSearch = useMemo(() => debounce(setListParams, 300), []);
   useEffect(() => {
-    refreshBooks(listParams);
-  }, [listParams]);
+    return () => {
+      debouncedSearch.cancel();
+    };
+  });
 
+  //useCallbacks
+  const getBooks = useCallback(() => {
+    return getAllBooksState.books.map<React.ReactElement>((book, index) => {
+      return (
+        <BookComponent
+          key={index}
+          book={book}
+          listBooksParams={listParams}
+          goToBookDetail={goToBookDetail}
+          goToBookEditing={goToBookEditing}
+        />
+      );
+    });
+  }, [getAllBooksState.books]);
+
+  const getMiddlePagination = useCallback(() => {
+    const totalPages = Math.ceil(
+      getAllBooksState.totalItems / listParams.pageSize
+    );
+    const paginationItems = [];
+
+    for (let i = 0; i <= 7; i++) {
+      let pageNumber = 0;
+      if (i <= 3) {
+        if (getAllBooksState.currentPage + i - 4 > totalPages) {
+          break;
+        }
+        pageNumber = getAllBooksState.currentPage - 3 + i;
+        if (pageNumber < 1) {
+          continue;
+        }
+        if (
+          pageNumber ==
+            totalPages - (totalPages - getAllBooksState.currentPage) &&
+          totalPages - getAllBooksState.currentPage <= 2 &&
+          totalPages > 3
+        ) {
+          paginationItems.push(
+            <PaginationItem key={`start-${i}`}>
+              <PaginationEllipsis />
+            </PaginationItem>
+          );
+        }
+      } else if (i == 4) {
+        if (getAllBooksState.currentPage + i - 1 > totalPages) {
+          continue;
+        }
+        paginationItems.push(
+          <PaginationItem key={`ellipsis-${i}`}>
+            <PaginationEllipsis />
+          </PaginationItem>
+        );
+        continue;
+      } else {
+        if (getAllBooksState.currentPage + i - 4 > totalPages) {
+          continue;
+        }
+        pageNumber = getAllBooksState.currentPage - 3 + (i - 1);
+      }
+      paginationItems.push(
+        <PaginationItem key={`end-${i}`}>
+          <PaginationLink
+            onClick={(e) => {
+              e.preventDefault();
+              const params = new URLSearchParams(searchParams.toString());
+              params.set("page", String(pageNumber));
+              router.push(pathname + "?" + params.toString());
+            }}
+            isActive={getAllBooksState.currentPage === pageNumber}
+          >
+            {pageNumber}
+          </PaginationLink>
+        </PaginationItem>
+      );
+    }
+    return paginationItems;
+  }, [getAllBooksState.status]);
+
+  //Functions
   function calcPageSizeBasedOnWidth(width: number): number {
     return Math.floor((width / (BOOK_COMPONENT_WIDTH + 20)) * 1);
   }
@@ -105,16 +191,17 @@ export default function BooksPage() {
   function refreshBooks(params: GetAllBooksFromUserParams) {
     if (params.page === 0) {
       return;
+    } else if (params.pageSize === 0) {
+      const newState = {
+        ...listParams,
+        pageSize: calcPageSizeBasedOnWidth(window.innerWidth),
+        page: searchParams.get("page") ? Number(searchParams.get("page")) : 1,
+      };
+      setListParams(newState);
+      return;
     }
     dispatch(doGetAllBooksFromUser(params));
   }
-
-  const debouncedSearch = useMemo(() => debounce(setListParams, 300), []);
-  useEffect(() => {
-    return () => {
-      debouncedSearch.cancel();
-    };
-  });
 
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     debouncedSearch((oldValue) => ({
@@ -123,6 +210,19 @@ export default function BooksPage() {
       query: e.target.value,
     }));
   };
+
+  function goToBookDetail(id?: number) {
+    router.push("books/detail?id=" + id);
+  }
+  function goToBookEditing(id?: number) {
+    router.push("books/edit?id=" + id);
+  }
+
+  //useEffects
+
+  useEffect(() => {
+    refreshBooks(listParams);
+  }, [listParams]);
 
   useEffect(() => {
     dispatch(doGetAllCollections());
@@ -146,78 +246,6 @@ export default function BooksPage() {
       }));
     }
   }, [searchParams]);
-
-  const getBooks = useCallback(() => {
-    return getAllBooksState.books.map<React.ReactElement>((book, index) => {
-      return (
-        <BookComponent key={index} book={book} listBooksParams={listParams} />
-      );
-    });
-  }, [getAllBooksState.books]);
-
-  const getMiddlePagination = useCallback(() => {
-    const totalPages = Math.ceil(
-      getAllBooksState.totalItems / listParams.pageSize
-    );
-    console.log(totalPages);
-    const paginationItems = [];
-
-    for (let i = 0; i <= 7; i++) {
-      let pageNumber = 0;
-      if (i <= 3) {
-        if (getAllBooksState.currentPage + i - 4 > totalPages) {
-          break;
-        }
-        pageNumber = getAllBooksState.currentPage - 3 + i;
-        if (pageNumber < 1) {
-          continue;
-        }
-        if (
-          pageNumber ==
-            totalPages - (totalPages - getAllBooksState.currentPage) &&
-          totalPages - getAllBooksState.currentPage <= 2 &&
-          totalPages > 3
-        ) {
-          paginationItems.push(
-            <PaginationItem>
-              <PaginationEllipsis />
-            </PaginationItem>
-          );
-        }
-      } else if (i == 4) {
-        if (getAllBooksState.currentPage + i - 1 > totalPages) {
-          continue;
-        }
-        paginationItems.push(
-          <PaginationItem>
-            <PaginationEllipsis />
-          </PaginationItem>
-        );
-        continue;
-      } else {
-        if (getAllBooksState.currentPage + i - 4 > totalPages) {
-          continue;
-        }
-        pageNumber = getAllBooksState.currentPage - 3 + (i - 1);
-      }
-      paginationItems.push(
-        <PaginationItem>
-          <PaginationLink
-            onClick={(e) => {
-              e.preventDefault();
-              const params = new URLSearchParams(searchParams.toString());
-              params.set("page", String(pageNumber));
-              router.push(pathname + "?" + params.toString());
-            }}
-            isActive={getAllBooksState.currentPage === pageNumber}
-          >
-            {pageNumber}
-          </PaginationLink>
-        </PaginationItem>
-      );
-    }
-    return paginationItems;
-  }, [getAllBooksState.status]);
 
   return (
     <main className="flex w-full h-full flex-col justify-center items-center">
@@ -511,17 +539,20 @@ export default function BooksPage() {
 type BookComponentProps = {
   book: Book;
   listBooksParams: GetAllBooksFromUserParams;
+  goToBookDetail: (id?: number) => void;
+  goToBookEditing: (id?: number) => void;
 };
 
 function BookComponent({
   book,
   listBooksParams,
+  goToBookDetail,
+  goToBookEditing,
 }: BookComponentProps): React.ReactElement {
-  const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   return (
     <Card className={`w-[${BOOK_COMPONENT_WIDTH}px] my-0 mx-auto shadow-md`}>
-      <CardHeader className="h-40">
+      <CardHeader className="h-40" onClick={() => goToBookDetail(book.id)}>
         <CardTitle>
           {book.title.length <= 55
             ? book.title
@@ -533,7 +564,7 @@ function BookComponent({
             ?.reduce((prev, current) => `${prev}, ${current}`)}
         </CardDescription>
       </CardHeader>
-      <CardContent>
+      <CardContent onClick={() => goToBookDetail(book.id)}>
         <div className="w-full h-[300px] relative">
           <Image
             src={
@@ -553,10 +584,14 @@ function BookComponent({
           />
         </div>
       </CardContent>
-      <CardFooter className="w-full flex flex-row justify-start align-middle gap-4">
-        {/* <Button variant={"default"}>
-          <Edit2 onClick={() => setEditDialogOpen(true)} />
-        </Button> */}
+      <CardFooter className="w-full flex flex-row justify-start align-middle gap-4 z-10">
+        <Button
+          variant={"default"}
+          size={"icon"}
+          onClick={() => goToBookEditing(book.id)}
+        >
+          <Edit2 />
+        </Button>
         <Button
           variant={"destructive"}
           size={"icon"}

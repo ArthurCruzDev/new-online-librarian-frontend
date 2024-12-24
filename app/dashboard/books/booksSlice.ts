@@ -6,6 +6,7 @@ import {
 } from "@reduxjs/toolkit";
 import { AxiosError } from "axios";
 import { Collection } from "../collections/collectionsSlice";
+import { Location } from "../locations/locationSlice";
 
 export interface Author {
   name: string;
@@ -208,6 +209,7 @@ export interface UpdateBookState {
   status: "idle" | "loading" | "success" | "failure";
   error: boolean;
   errorMsg: string | undefined;
+  fieldValidations?: Object;
   book?: Book;
 }
 
@@ -216,19 +218,31 @@ const initialUpdateBookState: UpdateBookState = {
   error: false,
   errorMsg: undefined,
   book: undefined,
+  fieldValidations: undefined,
 };
 
-export const doUpdateBook = createAsyncThunk(
-  "books/doUpdateBook",
-  async (book: Book) => {
-    const response = await ApiClient.put("/v1/books", book).catch(function (
-      error
-    ) {
-      throw new Error(error.response.data.msg);
-    });
-    return response.data;
+export interface UpdateBookBadRequest {
+  code: Number;
+  field_validations: Object;
+  msg: string;
+}
+
+export const doUpdateBook = createAsyncThunk<
+  Book,
+  CreateBookDTO,
+  { rejectValue: UpdateBookBadRequest }
+>("books/doUpdateBook", async (book: CreateBookDTO, { rejectWithValue }) => {
+  try {
+    const response = await ApiClient.put(`/v1/books/${book.id}`, book);
+    return response?.data as Book;
+  } catch (err: any) {
+    const error: AxiosError<UpdateBookBadRequest> = err as any;
+    if (!error.response) {
+      throw err;
+    }
+    return rejectWithValue(error.response.data);
   }
-);
+});
 
 export const updateBookSlice = createSlice({
   name: "UpdateBooks",
@@ -249,13 +263,14 @@ export const updateBookSlice = createSlice({
         state.status = "success";
         state.error = false;
         state.errorMsg = undefined;
-        state.book = action.payload.book as Book;
+        state.book = action.payload as Book;
       })
       .addCase(doUpdateBook.rejected, (state, action) => {
         state.status = "failure";
         state.error = true;
-        state.errorMsg = action.error.message;
+        state.errorMsg = action.payload?.msg;
         state.book = undefined;
+        state.fieldValidations = action.payload?.field_validations;
       });
   },
 });
@@ -320,9 +335,62 @@ export const deleteBookSlice = createSlice({
 
 export const { resetDeleteBookState } = deleteBookSlice.actions;
 
+export interface GetBookState {
+  status: "idle" | "loading" | "success" | "failure";
+  error: boolean;
+  errorMsg: string | undefined;
+  book: Book | undefined;
+}
+
+const initialGetBookState: GetBookState = {
+  status: "idle",
+  error: false,
+  errorMsg: undefined,
+  book: undefined,
+};
+
+export const doGetBookFromUser = createAsyncThunk(
+  "books/",
+  async (id: number) => {
+    const response = await ApiClient.get(`/v1/books/${id}`).catch(function (
+      error
+    ) {
+      throw new Error(error.response.data.msg);
+    });
+    return response.data;
+  }
+);
+
+export const getBookSlice = createSlice({
+  name: "getBook",
+  initialState: initialGetBookState,
+  reducers: {},
+  extraReducers(builder) {
+    builder
+      .addCase(doGetBookFromUser.pending, (state, _) => {
+        state.status = "loading";
+        state.error = false;
+        state.errorMsg = undefined;
+      })
+      .addCase(doGetBookFromUser.fulfilled, (state, action) => {
+        state.status = "success";
+        state.error = false;
+        state.errorMsg = undefined;
+        state.book = action.payload as Book;
+      })
+      .addCase(doGetBookFromUser.rejected, (state, action) => {
+        state.status = "failure";
+        state.error = true;
+        state.errorMsg = action.error.message;
+        state.book = undefined;
+      });
+  },
+});
+
 export default combineReducers({
   getAllBooksSlice: getAllBooksSlice.reducer,
   createBookSlice: createBookSlice.reducer,
   updateBookSlice: updateBookSlice.reducer,
   deleteBookSlice: deleteBookSlice.reducer,
+  getBookSlice: getBookSlice.reducer,
 });

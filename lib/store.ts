@@ -1,4 +1,4 @@
-import { configureStore } from "@reduxjs/toolkit";
+import { combineReducers, configureStore } from "@reduxjs/toolkit";
 import loginReducer from "@/app/login/loginSlice";
 import locationsReducer from "@/app/dashboard/locations/locationSlice";
 import collectionsReducer from "@/app/dashboard/collections/collectionsSlice";
@@ -6,12 +6,12 @@ import booksReducer from "@/app/dashboard/books/booksSlice";
 
 export const makeStore = () => {
   return configureStore({
-    reducer: {
+    reducer: combineReducers({
       login: loginReducer,
       locations: locationsReducer,
       collections: collectionsReducer,
       books: booksReducer,
-    },
+    }),
   });
 };
 
