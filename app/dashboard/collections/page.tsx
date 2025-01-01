@@ -205,7 +205,7 @@ type AddEditCollectionProps = {
   closeCallback: Function;
 };
 
-export function AddEditCollection({
+function AddEditCollection({
   collection,
   closeCallback,
 }: AddEditCollectionProps): React.ReactElement {
@@ -345,7 +345,7 @@ type DeleteCollectionProps = {
   closeCallback: Function;
 };
 
-export function DeleteCollection({
+function DeleteCollection({
   collection,
   closeCallback,
 }: DeleteCollectionProps): React.ReactElement {

@@ -619,7 +619,7 @@ type DeleteBookProps = {
   listBooksParams: GetAllBooksFromUserParams;
 };
 
-export function DeleteBook({
+function DeleteBook({
   book,
   closeCallback,
   listBooksParams,

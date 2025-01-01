@@ -215,7 +215,7 @@ type AddEditLocationProps = {
   closeCallback: Function;
 };
 
-export function AddEditLocation({
+function AddEditLocation({
   location,
   closeCallback,
 }: AddEditLocationProps): React.ReactElement {
@@ -355,7 +355,7 @@ type DeleteLocationProps = {
   closeCallback: Function;
 };
 
-export function DeleteLocation({
+function DeleteLocation({
   location,
   closeCallback,
 }: DeleteLocationProps): React.ReactElement {
