@@ -185,7 +185,7 @@ export default function BooksPage() {
 
   //Functions
   function calcPageSizeBasedOnWidth(width: number): number {
-    return Math.floor((width / (BOOK_COMPONENT_WIDTH + 20)) * 1);
+    return Math.floor((width / (BOOK_COMPONENT_WIDTH + 40)) * 1);
   }
 
   function refreshBooks(params: GetAllBooksFromUserParams) {

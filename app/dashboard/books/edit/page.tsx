@@ -15,7 +15,7 @@ export default function BookEditingPage() {
   const getBookState = useAppSelector((state) => state.books.getBookSlice);
 
   useEffect(() => {
-    if (getBookState.status === "idle") {
+    if (getBookState.status !== "loading") {
       dispatch(
         doGetBookFromUser(Number.parseInt(searchParams.get("id") || ""))
       );
