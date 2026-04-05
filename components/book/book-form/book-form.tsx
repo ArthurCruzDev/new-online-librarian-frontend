@@ -94,18 +94,14 @@ const formSchema = z.object({
   authors: z.array(
     z.object({
       name: z.string().min(1).max(255),
-      url: z
-        .string()
-        .max(500)
-        .nullish()
-        .transform((a) => (a === null ? undefined : a)),
-    })
+      url: z.string().max(500).optional(),
+    }),
   ),
   languages: z.array(
     z.object({
       name: z.string().min(1).max(255),
       code: z.string().max(4).optional(),
-    })
+    }),
   ),
   publisher: z.string().min(1).max(500),
   edition: z
@@ -127,15 +123,10 @@ const formSchema = z.object({
   genres: z.array(
     z.object({
       name: z.string().min(1).max(255),
-    })
+    }),
   ),
-  cover: z.string().or(z.string().url()).or(z.string().base64()).nullish(),
-  collection_id: z
-    .number()
-    .positive()
-    .int()
-    .nullish()
-    .transform((a) => (a === null ? undefined : a)),
+  cover: z.string().or(z.url()).or(z.base64()),
+  collection_id: z.number().positive().int().optional(),
   location_id: z.number().int().positive(),
 });
 
@@ -166,16 +157,16 @@ const BookForm = ({ book, isEditing = false }: BookFormProperties) => {
   });
   const dispatch = useAppDispatch();
   const createBookState = useAppSelector(
-    (state) => state.books.createBookSlice
+    (state) => state.books.createBookSlice,
   );
   const updateBookState = useAppSelector(
-    (state) => state.books.updateBookSlice
+    (state) => state.books.updateBookSlice,
   );
   const getAllCollectionsState = useAppSelector(
-    (state) => state.collections.getAllCollectionsSlice
+    (state) => state.collections.getAllCollectionsSlice,
   );
   const getAllLocationsState = useAppSelector(
-    (state) => state.locations.getAllLocationsSlice
+    (state) => state.locations.getAllLocationsSlice,
   );
 
   //useStates
@@ -198,7 +189,7 @@ const BookForm = ({ book, isEditing = false }: BookFormProperties) => {
         if (updateBookState.fieldValidations != undefined) {
           let finalString = "";
           for (const [key, value] of Object.entries(
-            updateBookState.fieldValidations
+            updateBookState.fieldValidations,
           )) {
             if (finalString == "") {
               finalString += value;
@@ -217,7 +208,7 @@ const BookForm = ({ book, isEditing = false }: BookFormProperties) => {
           let finalString = "";
 
           for (const [key, value] of Object.entries(
-            createBookState.fieldValidations
+            createBookState.fieldValidations,
           )) {
             if (finalString == "") {
               finalString += value;
@@ -477,7 +468,7 @@ const BookForm = ({ book, isEditing = false }: BookFormProperties) => {
                           {
                             shouldTouch: true,
                             shouldValidate: true,
-                          }
+                          },
                         );
                         setAuxAuthor("");
                       }}
@@ -504,7 +495,7 @@ const BookForm = ({ book, isEditing = false }: BookFormProperties) => {
                           role="combobox"
                           className={cn(
                             "w-[324px] justify-between",
-                            !field.value && "text-muted-foreground"
+                            !field.value && "text-muted-foreground",
                           )}
                         >
                           <span className="w-11/12 text-left overflow-clip">
@@ -513,8 +504,8 @@ const BookForm = ({ book, isEditing = false }: BookFormProperties) => {
                                   .filter(
                                     (language) =>
                                       field.value.filter(
-                                        (lang) => lang.code === language.code
-                                      ).length > 0
+                                        (lang) => lang.code === language.code,
+                                      ).length > 0,
                                   )
                                   ?.map((a) => a.name + "")
                                   ?.reduce((a, b) => `${a}, ${b}`)
@@ -538,7 +529,7 @@ const BookForm = ({ book, isEditing = false }: BookFormProperties) => {
                                   let actualLangs = form.getValues().languages;
                                   if (
                                     actualLangs.filter(
-                                      (lang) => lang.code === language.code
+                                      (lang) => lang.code === language.code,
                                     ).length > 0
                                   ) {
                                     form.setValue(
@@ -546,8 +537,8 @@ const BookForm = ({ book, isEditing = false }: BookFormProperties) => {
                                       form
                                         .getValues()
                                         .languages.filter(
-                                          (lang) => lang.code !== language.code
-                                        )
+                                          (lang) => lang.code !== language.code,
+                                        ),
                                     );
                                   } else {
                                     form.setValue("languages", [
@@ -566,10 +557,10 @@ const BookForm = ({ book, isEditing = false }: BookFormProperties) => {
                                     form
                                       .getValues()
                                       .languages.find(
-                                        (item) => item.code === language.code
+                                        (item) => item.code === language.code,
                                       )
                                       ? "opacity-100"
-                                      : "opacity-0"
+                                      : "opacity-0",
                                   )}
                                 />
                                 {language.name}
@@ -650,7 +641,7 @@ const BookForm = ({ book, isEditing = false }: BookFormProperties) => {
                           role="combobox"
                           className={cn(
                             "w-[324px] justify-between",
-                            !field.value && "text-muted-foreground"
+                            !field.value && "text-muted-foreground",
                           )}
                         >
                           <span className="w-11/12 text-left overflow-clip">
@@ -659,8 +650,8 @@ const BookForm = ({ book, isEditing = false }: BookFormProperties) => {
                                   .filter(
                                     (gen) =>
                                       field.value.filter(
-                                        (genre) => gen.name === genre.name
-                                      ).length > 0
+                                        (genre) => gen.name === genre.name,
+                                      ).length > 0,
                                   )
                                   ?.map((a) => a.name + "")
                                   ?.reduce((a, b) => `${a}, ${b}`)
@@ -684,7 +675,7 @@ const BookForm = ({ book, isEditing = false }: BookFormProperties) => {
                                   let actualGenres = form.getValues().genres;
                                   if (
                                     actualGenres.filter(
-                                      (gen) => gen.name === genre.name
+                                      (gen) => gen.name === genre.name,
                                     ).length > 0
                                   ) {
                                     form.setValue(
@@ -692,8 +683,8 @@ const BookForm = ({ book, isEditing = false }: BookFormProperties) => {
                                       form
                                         .getValues()
                                         .genres.filter(
-                                          (gen) => gen.name !== genre.name
-                                        )
+                                          (gen) => gen.name !== genre.name,
+                                        ),
                                     );
                                   } else {
                                     form.setValue("genres", [
@@ -711,10 +702,10 @@ const BookForm = ({ book, isEditing = false }: BookFormProperties) => {
                                     form
                                       .getValues()
                                       .genres?.find(
-                                        (item) => item.name === genre.name
+                                        (item) => item.name === genre.name,
                                       )
                                       ? "opacity-100"
-                                      : "opacity-0"
+                                      : "opacity-0",
                                   )}
                                 />
                                 {genre.name}
@@ -802,7 +793,7 @@ const BookForm = ({ book, isEditing = false }: BookFormProperties) => {
                                   e.target.value = "";
                                 } else {
                                   let fileUrl = URL.createObjectURL(
-                                    e.target.files[0] ?? ""
+                                    e.target.files[0] ?? "",
                                   );
                                   setUrl(fileUrl);
                                   form.setValue("cover", fileUrl);
@@ -907,7 +898,7 @@ const BookForm = ({ book, isEditing = false }: BookFormProperties) => {
                           role="combobox"
                           className={cn(
                             "w-[324px] justify-between",
-                            !field.value && "text-muted-foreground"
+                            !field.value && "text-muted-foreground",
                           )}
                         >
                           <span className="w-11/12 text-left overflow-clip">
@@ -915,7 +906,7 @@ const BookForm = ({ book, isEditing = false }: BookFormProperties) => {
                               ? getAllCollectionsState.collections.find(
                                   (collection) =>
                                     collection.id ===
-                                    form.getValues().collection_id
+                                    form.getValues().collection_id,
                                 )?.name
                               : "Selecione a Coleção"}
                           </span>
@@ -947,7 +938,7 @@ const BookForm = ({ book, isEditing = false }: BookFormProperties) => {
                                         {
                                           shouldTouch: true,
                                           shouldValidate: true,
-                                        }
+                                        },
                                       );
                                     } else {
                                       form.setValue(
@@ -956,7 +947,7 @@ const BookForm = ({ book, isEditing = false }: BookFormProperties) => {
                                         {
                                           shouldTouch: true,
                                           shouldValidate: true,
-                                        }
+                                        },
                                       );
                                     }
                                   }}
@@ -967,12 +958,12 @@ const BookForm = ({ book, isEditing = false }: BookFormProperties) => {
                                       form.getValues().collection_id ===
                                         collection.id
                                         ? "opacity-100"
-                                        : "opacity-0"
+                                        : "opacity-0",
                                     )}
                                   />
                                   {collection.name}
                                 </CommandItem>
-                              )
+                              ),
                             )}
                           </CommandGroup>
                         </CommandList>
@@ -997,13 +988,13 @@ const BookForm = ({ book, isEditing = false }: BookFormProperties) => {
                           role="combobox"
                           className={cn(
                             "w-[324px] justify-between",
-                            !field.value && "text-muted-foreground"
+                            !field.value && "text-muted-foreground",
                           )}
                         >
                           <span className="w-11/12 text-left overflow-clip">
                             {field.value !== undefined
                               ? getAllLocationsState.locations.find(
-                                  (location) => location.id === field.value
+                                  (location) => location.id === field.value,
                                 )?.name
                               : "Selecione a Localização"}
                           </span>
@@ -1026,7 +1017,7 @@ const BookForm = ({ book, isEditing = false }: BookFormProperties) => {
                                 onSelect={() => {
                                   form.setValue(
                                     "location_id",
-                                    location.id ?? 0
+                                    location.id ?? 0,
                                   );
                                 }}
                               >
@@ -1035,7 +1026,7 @@ const BookForm = ({ book, isEditing = false }: BookFormProperties) => {
                                     "mr-2 h-4 w-4",
                                     form.getValues().location_id === location.id
                                       ? "opacity-100"
-                                      : "opacity-0"
+                                      : "opacity-0",
                                   )}
                                 />
                                 {location.name}
