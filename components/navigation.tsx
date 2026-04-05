@@ -16,7 +16,7 @@ import { ModeToggle } from "@/components/mode-toggler";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Label } from "@/components/ui/label";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
-import "../app/globals.css";
+// import "../app/globals.css";
 import { useCallback, useEffect, useState } from "react";
 import { deleteToken, getTokenData } from "@/lib/api_client";
 import { Separator } from "./ui/separator";

@@ -1,5 +1,4 @@
 "use client";
-import "../globals.css";
 import StoreProvider from "../storeProvider";
 import { Button } from "@/components/ui/button";
 import { Book, Library, Map, MapPin, Menu, User } from "lucide-react";
